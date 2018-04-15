@@ -165,98 +165,112 @@ class Read_output:
 
 class Read_datset:
     """
-    Read_datset(fld_path, param_name, fexten="csv")
+    Read_datset(fld_path, fexten="csv")
     
     Class to read and interpolate datasets calculated parameter with respect to every O/F and Pc
     
     Parameter
     ---------
-    fld_path: string
+    self.fld_path: string
         folder path containing dataset files
 
-    param_name: string
-        Parameter name which is a dataset file name \n
-        e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
-
-    fexten: string
+    self.fexten: string
         Defalut-value = "csv".
         Extension of dataset file. Default is CSV file.
+
+    Class variable
+    --------
+    self.of: ndarray
+        oxidizer to fuel ratio
+    
+    self.Pc: ndarray
+        chamber pressure [MPa]
+
     """
     
-    def __init__(self, fld_path, param_name, fexten="csv"):
+    def __init__(self, fld_path, fexten="csv"):
         self.fld_path = fld_path
-        self.param_name = param_name
         self.fexten = fexten
-        self.of = []
-        self.Pc = []
-        self.dataframe = []
-        self.array = []
-        self.fpath = os.path.join(self.fld_path, self.param_name+"."+self.fexten)      
-        if os.path.exists(self.fpath):
-            self._read_csv_()
+        if os.path.exists(self.fld_path):
+            flist = self.get_flist()
+#            print(flist)
+            init_fpath = os.path.join(self.fld_path, flist[0] +"."+self.fexten)
+            dataframe = pd.read_csv(init_fpath, header=0, index_col=0, comment="#")
+            self.of = np.asarray([float(i) for i in dataframe.index])
+            self.Pc = np.asarray([float(i) for i in dataframe.columns])
         else:
-            print("There is no such a dataset file/n{}".format(self.fpath))        
-
+            print("There is no such a dataset file/n{}".format(self.fpath))
     
-    def _read_csv_(self):
+    def _read_csv_(self, param_name):
         """
         Read a csv-type-dataset files
         
         Parameter
         ---------
-        fpath: string
-            file path
+        param_name: string
+            Parameter name which is a dataset file name \n
+            e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
         
         Return
         ------
-        self.dataframe: Pandas.DataFrame
-            Contains dataset
-        self.of: 1-ndarray,
-            O/F
-        self.Pc: 1-ndarray, 
-            Pc: Chamber pressure [MPa]
-        self.array: 2-ndarray, array.shape -> (of.size(), Pc.size())
+        array: 2-ndarray, array.shape -> (of.size(), Pc.size())
             values of a calculated parameter with respect to every O/F and Pc
         """
-        self.dataframe = pd.read_csv(self.fpath, header=0, index_col=0, comment="#")
-        self.of = np.asarray([float(i) for i in self.dataframe.index])
-        self.Pc = np.asarray([float(i) for i in self.dataframe.columns])
-        self.array = np.asarray(self.dataframe)      
+        fpath = os.path.join(self.fld_path, param_name+"."+self.fexten)
+        
+        if os.path.exists(fpath):
+            dataframe = pd.read_csv(fpath, header=0, index_col=0, comment="#")
+            array = np.asarray(dataframe)
+        else:
+            print("There is no such a parameter \"{}\"\n".format(param_name))
+            print("Please select a parameter from below list\n")
+            print(self.get_flist())
+            sys.exit(1)
+        return(array)
 
     def get_flist(self):
         """
         Get dataset files list
+        
+        Return
+        -------
+        file_list: list
+            list of csv files
         """
         split =  lambda r: os.path.splitext(r)[0] # get file name without extention
         file_list = [os.path.basename(split(r))  for r in glob.glob(self.fld_path + "/*.{}".format(self.fexten))]
-        print(file_list)
+        return(file_list)
 
-    def gen_func(self):
+    def gen_func(self, param_name):
         """
         Generate function of calculated parameter with respect to O/F and Pc.
         Return a value after reading csv file and interpolate the data.
         
         Parameter
         ---------
-        of: float
-            O/F
-        Pc: float
-            Pc: Chamber pressure [MPa]
+        param_name: string
+            Parameter name which is a dataset file name \n
+            e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
 
         Return
         ------
         func: function(of, Pc)
             A function which return a interpolated value (array-like)
         """
-        func = interpolate.interp2d(self.of, self.Pc, self.array.T, kind="cubic", bounds_error=False)
+        array = self._read_csv_(param_name)
+        func = interpolate.interp2d(self.of, self.Pc, array.T, kind="cubic", bounds_error=False)
         return(func)
         
-    def plot(self, pickup_num):    
+    def plot(self, param_name, pickup_num):    
         """
         Plot graph about relationship of param to of and Pc
         
         Parameters
         ----------
+        param_name: string
+            Parameter name which is a dataset file name \n
+            e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
+
         pickup_num: int
             The number of "Pc" picked up to draw a graph 
         """
@@ -266,16 +280,17 @@ class Read_datset:
             Pc_nlm = (self.Pc[-1]-self.Pc[0])/(pickup_num-1)
             pick_idx = lambda i: np.abs(np.asarray(self.Pc)-(Pc_nlm*i + self.Pc[0])).argmin()
             idx = [pick_idx(i) for i in range(pickup_num)]
-        
+
+        array = self._read_csv_(param_name)        
         plt.rcParams["font.family"] = "Times New Roman"
         plt.rcParams["font.size"] = 17
         fig = plt.figure(figsize=(8,6))
         ax = fig.add_subplot(111)
         for i in idx:
-            ax.plot(self.of, self.array[:,i], label=r"$P_c$ = {} MPa".format(self.Pc[i]))
+            ax.plot(self.of, array[:,i], label=r"$P_c$ = {} MPa".format(self.Pc[i]))
         ax.legend(loc="best", fontsize=16)
         ax.set_xlabel(r"$O/F$")
-        ax.set_ylabel("${}$".format(self.param_name))
+        ax.set_ylabel("${}$".format(param_name))
 
 
 

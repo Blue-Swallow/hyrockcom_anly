@@ -8,34 +8,42 @@ Created on Sat Apr 14 13:40:16 2018
 import os, sys
 import numpy as np
 import pandas as pd
-import execute as ex
+from execute import Read_datset
 
 
 class Cui_input():
     """
     Class to attract information through CUI to generate .inp file
     
-    Parameters
+    Class variable
     ----------
-    langlist: list ["jp","en",...]
+    self._langlist_: list ["jp","en",...]
         Contain initial two characters of language name.
     
-    sntns_df : dict {outer_key: innerdict, ...}
+    self._sntns_df_ : dict {outer_key: innerdict, ...}
         outer_key: string\n
             it is representative of the questionaire type. \n
         innerdict: string\n
             it is a questionaier sentense.
 
-    lang: string
-        Selected language from the "langlist"
+    self._lang_: string
+        Selected language from the "_langlist_"
         
-    ex_path: string
+    self.ex_path: string
         Path containing experiment data
     
-    ex_file: string
-        experimant data file (.csv)
+    self.ex_file: string
+        The name of experimant data file (.csv)
         
-    mode: int
+    self.param: dict {param_name: symbol}
+        Parameter dictionary
+        param_name: string; e.g., time [s], Oxidizer mass flow rate [kg/s], ...
+        symbol: string; e.g., t, mox, ... 
+        
+    self.ex_df: DataFrame
+        Data frame of measured parameter in an experiment
+        
+    self.mode: int
         Reperesentative number,
         1: RT-1, Re-construction technique 1 
         2: RT-2, Re-construction technique 2
@@ -43,39 +51,45 @@ class Cui_input():
         4: RT-4, Re-construction technique 4
         5: RT-5, Re-construction technique 5
     
-    cea_path: string
+    self.cea_path: string
         Path containing the results of cea calculation
         
     
         
     """
-    langlist = ["jp","en"]
+    _langlist_ = ["jp","en"]
     _tmp_ = dict()
     _tmp_["oxid"] = {"jp": "\n\n計算オプション(0~2)を選択してください．\n例: 0: 全域平衡計算\n    1: 燃焼器内のみ平衡計算\n    2: スロートまで平衡計算",
                      "en": "\n\nPlease select option (0-2) of calculation.\ne.g.: 0: equilibrium during expansion\n      1: frozen after the end of chamber\n      2: frozen after nozzle throat"}
 
     def __init__(self):
-        self.sntns_df = pd.DataFrame([], columns=self.langlist)
+        self._sntns_df_ = pd.DataFrame([], columns=self._langlist_)
         for i in self._tmp_:
-            self.sntns_df = self.sntns_df.append(pd.DataFrame(self._tmp_[i], index=[i]))
+            self._sntns_df_ = self._sntns_df_.append(pd.DataFrame(self._tmp_[i], index=[i]))
 #        self._inp_lang_()
         self._get_expath_()
         self._get_ceapath_()
+        self.cea_db = Read_datset(self.cea_path)
+        self._select_mode_()
 
     def _inp_lang_(self):
         """
         Select user language
         """
-        print("Please select language.\n{}".format(self.langlist))
+        print("Please select language.\n{}".format(self._langlist_))
         lang = input()
-        if lang in self.langlist:
-            self.lang = lang
+        if lang in self._langlist_:
+            self._lang_ = lang
         else:
             print("There is no such language set!")
 
     def _get_expath_(self):
         """
-        Return the folder path cantaining experiment data.
+        Get the experiment folder path, file name and data and, create template file to contain an experimental data
+            ex_path: string, folder path 
+            ex_file: string, file name
+            ex_df: data frame of experintal data
+            param: dictionary of experimental data
         """
         cadir = os.path.dirname(os.path.abspath(__file__))
         while(True):
@@ -83,21 +97,21 @@ class Cui_input():
             foldername = input()
             self.ex_path = os.path.join(cadir, foldername)
             if os.path.exists(self.ex_path):
-                filename = "ex_dat.csv"
-                self.ex_file = os.path.join(self.ex_path, filename)
-                if os.path.exists(self.ex_file):
+                self.ex_file = "ex_dat.csv"
+                file_path = os.path.join(self.ex_path, self.ex_file)
+                p_name = ("time [s]", "Oxidizer mass flow rate [kg/s]", "Chamber pressure [MPaG]", "Thrust [N]", "Nozzle exit pressure [MPaG]")
+                symbol = ("t", "mox", "Pc", "F", "Pe")
+                self.param = dict(zip(p_name, symbol))
+                if os.path.exists(file_path):
+                    self.ex_df = pd.read_csv(file_path,header=1, index_col=0)
                     break
-                else:
-                    print("\nThere is no such a experiment data/n{}".format(self.ex_path))
+                else: # create template file
+                    print("\nThere is no such a experiment data/n{}".format(file_path))
                     print("\nDo you want to make a template file ?\ny/n ?")
                     flag = input()
                     if flag == "y":
-                        dic = {"t":"[s]",
-                               "mox":"[kg/s]",
-                               "Pc":"[MPaG]",
-                               "F":"[N]"}
-                        df = pd.DataFrame(dic, index=[0])
-                        df.to_csv(self.ex_file, index= False)
+                        df = pd.DataFrame(self.param, index=[0], columns=p_name)
+                        df.to_csv(file_path, index= False)
                     elif flag == "n":
                         sys.exit()
             else:
@@ -107,6 +121,7 @@ class Cui_input():
     def _get_ceapath_(self):
         """
         Return the folder path cantaining the results of cea calculation.
+            cea.path: string, folder path containing "out" folder
         """
         cadir = os.path.dirname(os.path.abspath(__file__))
         while(True):
@@ -118,21 +133,78 @@ class Cui_input():
                 break
             else:
                 print("There is no such a dataset folder/n{}".format(self.cea_path))
+                
+    def _select_mode_(self):
+        """
+        Select a calculation mode; RT-1,2,3,4,5,...
+        """
+        while(True):
+            print("Please select calculation mode.\n")
+            print("1: RT-1\n2: RT-2\n3: RT-3\n4: RT-4\n5: RT-5\n")
+            mode = {1: "RT-1",
+                    2: "RT-2",
+                    3: "RT-3",
+                    4: "RT-4",
+                    5: "RT-5"}
+            inp = int(input())
+            if inp in mode.keys():
+                self.mode = inp
+                break
+            else:
+                print("There is no such a mode \"{}\"".format(inp))
+        
 
-# =============================================================================
-#     def _inp_oxid_(self):
-#         """
-#         Input oxidizer species
-#         """
-#         print(self.sntns_df[self.lang]["oxid"])
-#         oxid = input()
-#         self.oxid = oxid
-# =============================================================================
-
+class RT():
+    """
+    Class executing re-construction technique and acquiering calculated results.
     
+    Parameters
+    ---------
+    inst: class
+        instance generated by "Cui_input()" class
+        
+    Class variable
+    --------------
+    self.of: 1-d ndarray
+        list of oxidizer to fuel ratio calculated by CEA
+    
+    self.Pc: 1-d ndarray
+        list of chamber pressure by CEA
+        
+    self.ex_df: pandas.DataFrame
+        data frame of experimet data
+
+    self.cstr: function
+        function of characteristic exhaust velocity: self.cstr(of, Pc)
+        
+    self.gamma: function
+        function of specific heat ratio at the end of chamber: self.gamma(of, Pc)
+    """
+    def __init__(self, inst):
+        self.inst = inst
+        self.of = inst.cea_db.of
+        self.Pc = inst.cea_db.Pc
+        self.ex_df = inst.ex_df
+        self.cstr = inst.cea_db.gen_func("CSTAR")
+        self.gamma = inst.cea_db.gen_func("GAMMAs_c")
+        
+    def _call_rt_(self):
+        if self.inst.mode == 1:
+            anl_df = rt_1.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma)
+        if self.inst.mode == 2:
+            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma)
+        if self.inst.mode == 3:
+            anl_df = rt_3.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma)
+        if self.inst.mode == 4:
+            anl_df = rt_4.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma)
+        if self.inst.mode == 5:
+            anl_df = rt_5.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma)
+
 
     
 if __name__ == "__main__":
-    test = Cui_input()
+    inst = Cui_input()
+#    RT(inst)
+    
 
     
