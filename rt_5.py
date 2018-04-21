@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr 14 13:21:33 2018
+Created on Sat Apr 21 18:03:51 2018
 
 @author: T.J.-LAB-PC
 """
+
 import numpy as np
 import pandas as pd
 from scipy import integrate
+from rt_1 import func_cstr_ave
 
 
-def main(ex_df, input_param):
+def main(ex_df, db_of, db_Pc, func_cstr, func_gamma, input_param):
     """
     Function to calculate O/F and time-averaged characteristic exhaust velocity
     
@@ -36,30 +38,6 @@ def main(ex_df, input_param):
     anl_df = pd.DataFrame(dic, index=ex_df.index)
     return(anl_df)
     
-def func_cstr_ave(ex_df, input_param):
-    """
-    Return a time-averaged c*
-    
-    Parameter
-    ----------
-    ex_df: pandas.DataFrame
-        which must include the parameters: "Pc",chamber pressure; "mox", oxidizer mass flow rate.
-        And also its index must indicate time [s]
-    input_param: dict
-        which must include the parameters: "Mf", fuel consumption; "Dt", nozzle throat diameter
-    
-    Return
-    -------
-    cstr_ave: float
-        time-averaged c*
-    """
-    At = np.power(input_param["Dt"], 2.0)*np.pi/4
-    Mox = integrate.simps(np.array(ex_df.mox), np.array(ex_df.index))
-    Mf = input_param["Mf"]
-    int_Pc = integrate.simps(np.array(ex_df.Pc), np.array(ex_df.index))
-    cstr_ave = int_Pc*At/(Mox + Mf)
-    return(cstr_ave)
-    
 
 if __name__ == "__main__":
     import RockCombstAnly
@@ -72,6 +50,5 @@ if __name__ == "__main__":
     func_gamma = RockCombstAnly.RT(inst).gamma
     input_param = RockCombstAnly.RT(inst).input_param
     
-    result = main(ex_df, input_param)
+    result = main(ex_df, db_of, db_Pc, func_cstr, func_gamma, input_param)
     plt.plot(result.index, result.of)
-#    plt.ylim(-1, 10)
