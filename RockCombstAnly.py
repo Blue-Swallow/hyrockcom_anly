@@ -238,9 +238,7 @@ class RT():
             anl_df = rt_4.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 5:
             anl_df = rt_5.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
-
-
-    
+   
 if __name__ == "__main__":
     inst = Cui_input()
 #    RT(inst)

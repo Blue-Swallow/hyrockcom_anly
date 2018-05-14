@@ -108,8 +108,8 @@ class Main:
             string = "th"
         print("{}".format(self.counter_eta_iterat)+ string + " iteration")
         print("eta = {}".format(eta))
-        for i in tqdm(ex_df.index):
-            func = lambda of: of - eta*self.ex_df.mox[i]*func_cstr(of, self.ex_df.Pc[i])[0]
+        for i in tqdm(self.ex_df.index):
+            func = lambda of: of - eta*self.ex_df.mox[i]*self.func_cstr(of, self.ex_df.Pc[i]*1.0e-6)[0]
             tmp = optimize.newton(func, self.of_init[i], maxiter=10, tol=1.0e-5)
             of = np.append(of, tmp)
             j +=1
