@@ -258,7 +258,8 @@ class Read_datset:
             A function which return a interpolated value (array-like)
         """
         array = self._read_csv_(param_name)
-        func = interpolate.interp2d(self.of, self.Pc, array.T, kind="cubic", bounds_error=False)
+        func = interpolate.RectBivariateSpline(self.of, self.Pc, array.T, kx=3, ky=3)
+#        func = interpolate.interp2d(self.of, self.Pc, array.T, kind="cubic", bounds_error=False)
         return(func)
         
     def plot(self, param_name, pickup_num):    
@@ -469,3 +470,4 @@ if __name__ == "__main__":
     inst = CEA_execute()
     of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
 
+    test = Read_datset("GOX_CurableResin_new")

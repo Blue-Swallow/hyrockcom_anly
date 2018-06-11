@@ -114,14 +114,13 @@ class Cui_input():
             if os.path.exists(self.ex_path):
                 self.ex_file = "ex_dat.csv"
                 file_path = os.path.join(self.ex_path, self.ex_file)
-                p_name = ("time [s]", "Oxidizer mass flow rate [g/s]", "Chamber pressure [MPaG]", "Thrust [N]", "Nozzle exit pressure [MPaG]")
-                symbol = ("t", "mox", "Pc", "F", "Pe")
+                p_name = ("time [s]", "Oxidizer mass flow rate [g/s]", "Thrust [N]", "Chamber pressure [MPaG]")
+                symbol = ("t", "mox", "F", "Pc")
                 self.ex_param = dict(zip(p_name, symbol))
                 if os.path.exists(file_path):
                     self.ex_df = pd.read_csv(file_path,header=1, index_col=0)
                     self.ex_df.mox = self.ex_df.mox * 1.0e-3 #convert [g/s] to [kg/s]
                     self.ex_df.Pc = self.ex_df.Pc * 1.0e+6 + 0.1013 #convert [MPaG] to [Pa]
-                    self.ex_df.Pe = self.ex_df.Pe * 1.0e+6 + 0.1013 #convert [MPaG] to [Pa]
                     break
                 else: # create template file
                     print("\nThere is no such a experiment data/n{}".format(file_path))
