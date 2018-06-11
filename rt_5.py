@@ -87,7 +87,7 @@ class Main:
         Mf = self.func_Mf(eta)
         diff_Mf = self.input_param["Mf"] - Mf
         error = diff_Mf/Mf
-        print("Error of Mf = {} [%]\n\n".format(error))
+        print("Error of Mf = {} [%]\n\n".format(error*1.0e+2))
         return(error)
 
     def func_Mf(self, eta):
@@ -153,7 +153,13 @@ class Main:
         for i in tqdm(self.ex_df.index):
 #            tmp = optimize.newton(self.func_error_of, self.of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
 #            tmp = optimize.newton(self.func_error_eq14, self.of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
-            tmp = optimize.brentq(self.func_error_eq14, 1.0e-6, 100, maxiter=100, xtol=1.0e-5, args=(i, eta))
+#            tmp = optimize.brentq(self.func_error_eq14, 1.0e-6, 100, maxiter=100, xtol=1.0e-5, args=(i, eta))
+            of_init = self.of_init.where(self.of_init<=0, 1.0e-3)
+            try:
+                tmp = optimize.newton(self.func_error_eq14, of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
+            except:
+#                print("using brentq")
+                tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, self.of_init.max(), maxiter=100, xtol=1.0e-5, args=(i, eta))                
             of = np.append(of, tmp)
             j +=1
         self.anl_df["of"] = of
@@ -179,7 +185,7 @@ class Main:
         Pc = self.ex_df.Pc[t]
         mox = self.ex_df.mox[t]
         At = np.pi*np.power(self.input_param["Dt"], 2)/4
-        cstr = self.func_cstr(of, Pc*1.0e-6)[0]
+        cstr = self.func_cstr(of, Pc)
         of = eta*mox*cstr/(Pc*At - mox*eta*cstr)
         return(of)
     
@@ -202,7 +208,7 @@ class Main:
             eta *cstr_th *(1+1/(O/F)) 
         """
         Pc = self.ex_df.Pc[t]
-        cstr = self.func_cstr(of, Pc*1.0e-6)[0]
+        cstr = self.func_cstr(of, Pc)
         left_val = eta*cstr*(1 + 1/of)
         return(left_val)
 
@@ -238,7 +244,7 @@ if __name__ == "__main__":
     result.do_iterat(maxiter=20)
     plt.plot(ex_df.index,result.of_init)
     
-    t = 0.005
+    t = 1.0
     eta = 1.0
     of_range = np.arange(-10, 50, 0.1)
     plt.rcParams["font.family"] = "Times New Roman"
@@ -252,6 +258,7 @@ if __name__ == "__main__":
     plt.ylabel(r"Left and right hand side of Eq.14 [m/s]")
     plt.xlabel(r"O/F [] $M_f$")
     plt.legend()
+    plt.plot(of_range, (left_eq14-right_eq14)/right_eq14)
     
     
     error = np.array([result.func_error_of(of, t, eta) for of in of_range])
@@ -269,13 +276,13 @@ if __name__ == "__main__":
     Pc = ex_df.Pc[t]
     mox = ex_df.mox[t]
     At = np.pi*np.power(input_param["Dt"], 2)/4
-    func_denom = lambda of: Pc*At - mox*eta*func_cstr(of, Pc*1.0e-6)[0]
+    func_denom = lambda of: Pc*At - mox*eta*func_cstr(of, Pc)
     denom = np.array([func_denom(of) for of in of_range])
     plt.plot(of_range, denom)
     plt.ylabel("Denominator of O/F")
     plt.xlabel("O/F")
     
-    func_nume = lambda of: eta*mox*func_cstr(of, Pc*1.0e-6)[0]
+    func_nume = lambda of: eta*mox*func_cstr(of, Pc)
     nume = np.array([func_nume(of) for of in of_range])
     plt.plot(of_range, nume)
     plt.ylabel("Denominator of O/F")
