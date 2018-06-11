@@ -19,14 +19,15 @@ class Main:
         self.func_gamma = func_gamma
         self.input_param = input_param
         self.of_init = rt_1.main(self.ex_df, self.input_param).of
+#        tmp_list = [integrate.simps(self.ex_df.mox, self.ex_df.index)/self.input_param["Mf"] for i in ex_df.index]
+#        self.of_init = pd.Series(tmp_list, index=ex_df.index)
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_lmbd_iterat = 0
         self.Pa = 0.1013*1.0e+6 #Atmospheric pressure [Pa]
+#        self.iterat_lmbd(maxiter=20)
+#        self.cal_eta()
 
-    def do_iterat(self, maxiter=10):
-        self.iterat_brentq_lmbd(maxiter)
-
-    def iterat_brentq_lmbd(self, maxiter, lmbd_min=0.01, lmbd_max=1.0):
+    def iterat_lmbd(self, maxiter=10, lmbd_init=0.75, lmbd_min=0.1, lmbd_max=2.0):
         """
         Function to calculate nozzle coefficient
         
@@ -41,7 +42,10 @@ class Main:
             nozzle discharge coefficient
         """
         self.counter_lmbd_iterat = 1
-        self.lmbd = optimize.brentq(self.func_Mf, lmbd_min, lmbd_max, maxiter=maxiter, xtol=1.0e-3, full_output=False)
+        try:
+            self.lmbd = optimize.newton(self.func_Mf, lmbd_init, maxiter=maxiter, tol=1.0e-3)
+        except:
+            self.lmbd = optimize.brentq(self.func_Mf, lmbd_min, lmbd_max, maxiter=maxiter, xtol=1.0e-3, full_output=False)
         return(self.lmbd)
 
 
@@ -61,12 +65,15 @@ class Main:
         """
         of = self.iterat_newton_of(lmbd)
         mf = np.array(self.ex_df.mox)/of
+        for i in np.where(mf<0): #when mf<0, zero-value is inserted to mf
+            mf[i] = 0.0
         self.anl_df["mf"] = mf
         self.Mf = integrate.simps(mf, np.array(self.ex_df.index))
-        self.diff_Mf = self.Mf - self.input_param["Mf"]
-        print("Difference of Mf = {} [kg]\n\n".format(self.diff_Mf))
+        diff = self.Mf - self.input_param["Mf"]
+        self.error_Mf = diff/self.Mf
+        print("Difference of Mf = {} [kg]\n\n".format(diff))
         self.counter_lmbd_iterat += 1
-        return(self.diff_Mf)
+        return(self.error_Mf)
 
 
     def iterat_newton_of(self, lmbd):
@@ -107,7 +114,10 @@ class Main:
 #             / (self.ex_df.F[i] - (func_Pe(of, self.ex_df.Pc[i], eps, self.func_gamma)-self.Pa)*Ae\
 #                - lmbd*func_Ve(of, self.ex_df.Pc[i], eps, self.func_cstr, self.func_gamma)*self.ex_df.mox[i])
 #==============================================================================
-            tmp = optimize.newton(self.func_of, self.of_init[i], maxiter=10, tol=1.0e-5, args=(i, lmbd, eps, Ae))
+            try:
+                tmp = optimize.newton(self.func_of, self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
+            except:
+                tmp = optimize.brentq(self.func_of, -1.0e-3, 1.0e+3, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
             self.of = np.append(self.of, tmp)
             j +=1
         self.anl_df["of"] = self.of
@@ -124,8 +134,23 @@ class Main:
         mox = self.ex_df.mox[time]
         F = self.ex_df.F[time]
         of_cal = lmbd*mox*Ve / (F - (Pe-self.Pa)*Ae - lmbd*Ve*mox)
-        self.diff_of = of - of_cal
-        return(self.diff_of)
+        error_of = (of - of_cal)/of_cal
+#        error_of = of - of_cal
+        self.error_of = error_of
+        return(self.error_of)
+        
+    def cal_eta(self):
+        eta = np.array([])
+        for time in self.anl_df.index:
+            Pc = self.ex_df.Pc[time]
+            cstr_th = self.func_cstr(self.anl_df.of[time], Pc*1.0e-6)
+            At = np.pi*np.power(self.input_param["Dt"], 2.0)/4
+            cstr_ex = Pc*At/(self.ex_df.mox[time]+self.anl_df.mf[time])
+            tmp = cstr_ex/cstr_th
+            eta = np.append(eta, tmp[0])
+        self.anl_df["eta"]=eta
+        
+            
     
     
 def func_Pe(of, Pc, eps, func_gamma):
@@ -140,18 +165,32 @@ def func_Ve(of, Pc, eps, func_cstr, func_gamma):
     Pe = func_Pe(of, Pc, eps, func_gamma)
     Ve = np.sqrt(2/(gam-1)*(1-np.power(Pe/Pc, (gam-1)/gam))) * SON_c
     return(Ve)
-    
+
 if __name__ == "__main__":
-    import RockCombstAnly
-    import matplotlib.pyplot as plt
-    inst = RockCombstAnly.Cui_input()
-    db_of = RockCombstAnly.RT(inst).of
-    db_Pc = RockCombstAnly.RT(inst).Pc
-    ex_df = RockCombstAnly.RT(inst).ex_df
-    func_cstr = RockCombstAnly.RT(inst).cstr
-    func_gamma = RockCombstAnly.RT(inst).gamma
-    input_param = RockCombstAnly.RT(inst).input_param
+# =============================================================================
+#     import RockCombstAnly
+#     import matplotlib.pyplot as plt
+#     inst = RockCombstAnly.Cui_input()
+#     db_of = RockCombstAnly.RT(inst).of
+#     db_Pc = RockCombstAnly.RT(inst).Pc
+#     ex_df = RockCombstAnly.RT(inst).ex_df
+#     func_cstr = RockCombstAnly.RT(inst).cstr
+#     func_gamma = RockCombstAnly.RT(inst).gamma
+#     input_param = RockCombstAnly.RT(inst).input_param
+# =============================================================================
     
     result = Main(ex_df, func_cstr, func_gamma, input_param)
-#    result.do_iterat()
-    result.iterat_newton_of(0.9)
+    result.iterat_lmbd(maxiter=20)
+    result.cal_eta()
+#    result.iterat_newton_of(0.9)
+    
+#    time = 0.0
+#    lmbd = 0.75
+#    eps = 2.0
+#    Ae = inst.input_param["eps"]*np.power(inst.input_param["Dt"],2.0)*np.pi/4
+#    of_range = np.arange(-5, 10, 0.1)
+#    plt.plot(of_range, [result.func_of(x, time, lmbd, eps, Ae) for x in of_range])
+#    plt.plot(of_range, [func_Pe(x, result.ex_df.Pc[time], 2.0, func_gamma) for x in of_range])
+#    optimize.newton(result.func_of, result.of_init[time], maxiter=100, tol=1.0e-3, args=(time, lmbd, eps, Ae))
+#    optimize.newton(result.func_of, 35, maxiter=100, tol=1.0e-3, args=(time, lmbd, eps, Ae))
+#    optimize.brentq(result.func_of, -1.0e+3, 1.0e+3, maxiter=50, xtol=1.0e-3, args=(time, lmbd, eps, Ae))
