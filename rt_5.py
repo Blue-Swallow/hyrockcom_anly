@@ -237,63 +237,65 @@ if __name__ == "__main__":
     result = Main(ex_df, func_cstr, func_gamma, input_param)
     result.do_iterat(maxiter=20)
     plt.plot(ex_df.index,result.of_init)
-    
-    t = 0.005
-    eta = 1.0
-    of_range = np.arange(-10, 50, 0.1)
-    plt.rcParams["font.family"] = "Times New Roman"
-    plt.rcParams["font.size"] = 13
-    plt.rcParams["text.usetex"] = False
-    
-    left_eq14 = np.array([result.func_left_eq14(of,t,eta) for of in of_range])
-    right_eq14 = np.array([result.func_right_eq14(t) for of in of_range])
-    plt.plot(of_range, left_eq14, label="Left-hand")
-    plt.plot(of_range, right_eq14, label="Right-hand")
-    plt.ylabel(r"Left and right hand side of Eq.14 [m/s]")
-    plt.xlabel(r"O/F [] $M_f$")
-    plt.legend()
-    
-    
-    error = np.array([result.func_error_of(of, t, eta) for of in of_range])
-    plt.plot(of_range, error)
-    plt.ylabel("Error")
-    plt.xlabel("O/F")
 
-    of_cal =  np.array([result.func_of(of, t, eta) for of in of_range])
-    plt.plot(of_range, of_cal)
-    plt.plot(of_range, of_range)
-    plt.ylabel("O/F cal")
-    plt.xlabel("O/F")
-    plt.ylim(-5, 5)
-
-    Pc = ex_df.Pc[t]
-    mox = ex_df.mox[t]
-    At = np.pi*np.power(input_param["Dt"], 2)/4
-    func_denom = lambda of: Pc*At - mox*eta*func_cstr(of, Pc*1.0e-6)[0]
-    denom = np.array([func_denom(of) for of in of_range])
-    plt.plot(of_range, denom)
-    plt.ylabel("Denominator of O/F")
-    plt.xlabel("O/F")
-    
-    func_nume = lambda of: eta*mox*func_cstr(of, Pc*1.0e-6)[0]
-    nume = np.array([func_nume(of) for of in of_range])
-    plt.plot(of_range, nume)
-    plt.ylabel("Denominator of O/F")
-    plt.xlabel("O/F")
-    
-    plt.plot(of_range, nume/denom)
-    plt.ylabel("Claculated O/F")
-    plt.xlabel("O/F")
-    
-
-    diff = of_cal-of_range
-    plt.plot(of_range, diff, "ko")
-    plt.ylabel("Difference of O/F")
-    plt.xlabel("O/F cal")
-    plt.ylim(-10, 10)
-    
-    error_of = diff/of_cal
-    plt.plot(of_range, error_of)
-    plt.ylabel("Error")
-    plt.xlabel("Difference of O/F")
-#    plt.plot(result.index, result.of)
+# =============================================================================
+#     t = 0.005
+#     eta = 1.0
+#     of_range = np.arange(-10, 50, 0.1)
+#     plt.rcParams["font.family"] = "Times New Roman"
+#     plt.rcParams["font.size"] = 13
+#     plt.rcParams["text.usetex"] = False
+#     
+#     left_eq14 = np.array([result.func_left_eq14(of,t,eta) for of in of_range])
+#     right_eq14 = np.array([result.func_right_eq14(t) for of in of_range])
+#     plt.plot(of_range, left_eq14, label="Left-hand")
+#     plt.plot(of_range, right_eq14, label="Right-hand")
+#     plt.ylabel(r"Left and right hand side of Eq.14 [m/s]")
+#     plt.xlabel(r"O/F [] $M_f$")
+#     plt.legend()
+#     
+#     
+#     error = np.array([result.func_error_of(of, t, eta) for of in of_range])
+#     plt.plot(of_range, error)
+#     plt.ylabel("Error")
+#     plt.xlabel("O/F")
+# 
+#     of_cal =  np.array([result.func_of(of, t, eta) for of in of_range])
+#     plt.plot(of_range, of_cal)
+#     plt.plot(of_range, of_range)
+#     plt.ylabel("O/F cal")
+#     plt.xlabel("O/F")
+#     plt.ylim(-5, 5)
+# 
+#     Pc = ex_df.Pc[t]
+#     mox = ex_df.mox[t]
+#     At = np.pi*np.power(input_param["Dt"], 2)/4
+#     func_denom = lambda of: Pc*At - mox*eta*func_cstr(of, Pc*1.0e-6)[0]
+#     denom = np.array([func_denom(of) for of in of_range])
+#     plt.plot(of_range, denom)
+#     plt.ylabel("Denominator of O/F")
+#     plt.xlabel("O/F")
+#     
+#     func_nume = lambda of: eta*mox*func_cstr(of, Pc*1.0e-6)[0]
+#     nume = np.array([func_nume(of) for of in of_range])
+#     plt.plot(of_range, nume)
+#     plt.ylabel("Denominator of O/F")
+#     plt.xlabel("O/F")
+#     
+#     plt.plot(of_range, nume/denom)
+#     plt.ylabel("Claculated O/F")
+#     plt.xlabel("O/F")
+#     
+# 
+#     diff = of_cal-of_range
+#     plt.plot(of_range, diff, "ko")
+#     plt.ylabel("Difference of O/F")
+#     plt.xlabel("O/F cal")
+#     plt.ylim(-10, 10)
+#     
+#     error_of = diff/of_cal
+#     plt.plot(of_range, error_of)
+#     plt.ylabel("Error")
+#     plt.xlabel("Difference of O/F")
+# #    plt.plot(result.index, result.of)
+# =============================================================================
