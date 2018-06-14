@@ -145,7 +145,7 @@ class Cui_input():
             print("\nInput the Folder Name Containing Results of CEA >>")
             foldername = input()
             self.cea_path = os.path.join(cadir, foldername)
-            self.cea_path = os.path.join(self.cea_path, "out")
+            self.cea_path = os.path.join(self.cea_path, "csv_database")
             if os.path.exists(self.cea_path):
                 break
             else:
@@ -237,7 +237,7 @@ class RT():
             anl_df = rt_4.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 5:
             anl_df = rt_5.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
-   
+
 if __name__ == "__main__":
     inst = Cui_input()
 #    RT(inst)
