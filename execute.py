@@ -437,7 +437,11 @@ class Read_datset:
             e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
         
         extraporate: string; optional
-            "exponent": using f(x)=theta*numpy.exp(x-p)+q to extraporate the region out of database
+            "exp": using f(x)=theta*numpy.exp(x-p)+q to extraporate the region out of database
+            "exp2"
+            "ln"
+            "inverse"
+            "power"
             "linear" Default; using linear function to extraporate
 
         Return
@@ -489,13 +493,21 @@ class Read_datset:
                 q = b - theta/(a-p)
                 val = theta/(of-p) + q
                 return(val)
+            def extrapfunc_power(of, a, b, diff, ddiff, dddiff):
+                phi = (dddiff*diff-2*np.power(ddiff,2))/(dddiff*diff-np.power(ddiff,2))
+                p = a - (phi-1)*diff/ddiff
+                theta = diff/(phi*np.power(a-p,phi-1))
+                q = b - theta*np.power(a-p,phi)
+                val = theta*np.power(of-p,phi)+q
+                return(val)
             def extrapfunc_linear(of, a, b, diff):
                 val= diff*(of-a) + b
                 return(val)
             
             if of<self.of.min(): #when assigned O/F is smaller than minimum O/F of database
                 diff_begin = (-3*cstr_array[0] +4*cstr_array[1] -cstr_array[2])/(2*(self.of[1]-self.of[0]))
-                ddiff_begin = -(2*cstr_array[0] -5*cstr_array[1] + 4*cstr_array[2] -cstr_array[3])/np.power((self.of[1]-self.of[0]),2.0)
+                ddiff_begin = (2*cstr_array[0] -5*cstr_array[1] + 4*cstr_array[2] -cstr_array[3])/np.power((self.of[1]-self.of[0]),2.0)
+#                dddiff_begin = 
                 a = self.of.min()
                 b = cstr_array[0]
                 if extraporate=="exp":
@@ -506,11 +518,14 @@ class Read_datset:
                     val = extrapfunc_ln(of, a, b, diff_begin, ddiff_begin)
                 elif extraporate=="inverse":
                     val = extrapfunc_inverse(of, a, b, diff_begin, ddiff_begin)
+                elif extrapfunc_power=="power":
+                    val = extrapfunc_power(of, a, b, diff_begin, ddiff_begin, dddiff_begin)
                 elif extraporate=="linear":
                     val = extrapfunc_linear(of, a, b, diff_begin)
             elif self.of.max()<of: #when assigned O/F is larger than maximum O/F of database
                 diff_end = (cstr_array[len(cstr_array)-3] -4* cstr_array[len(cstr_array)-2] +3*cstr_array[len(cstr_array)-1])/(2*(self.of[len(self.of)-1]-self.of[len(self.of)-2]))
                 ddiff_end = (-2*cstr_array[len(cstr_array)-4] +4*cstr_array[len(cstr_array)-3] -5*cstr_array[len(cstr_array)-2] +2*cstr_array[len(cstr_array)-1])/np.power(self.of[len(self.of)-1]-self.of[len(self.of)-2], 2.0)
+#                dddiff_end = 
                 a = self.of.max()
                 b = cstr_array[len(cstr_array)-1]
                 if extraporate=="exp":
@@ -521,6 +536,8 @@ class Read_datset:
                     val = extrapfunc_ln(of, a, b, diff_end, ddiff_end)
                 elif extraporate=="inverse":
                     val = extrapfunc_inverse(of, a, b, diff_end, ddiff_end)
+                elif extrapfunc_power=="power":
+                    val = extrapfunc_power(of, a, b, diff_end, ddiff_end, dddiff_end)
                 elif extraporate=="linear":
                     val = extrapfunc_linear(of, a, b, diff_end)
             else: #when assigned O/F is with in the range of O/F
@@ -561,18 +578,13 @@ class Read_datset:
         ax.set_ylabel("${}$".format(param_name))
 
 
-
-
-
-
 if __name__ == "__main__":
     inst = CEA_execute()
     of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
 
-#==============================================================================
-#     dbfld_path = os.path.join("GOX_PE", "csv_database")
-#     inst2 = Read_datset(dbfld_path)
-#     func = inst2.gen_func("CSTAR")
-#     func(60, 1.0e+6)
-#==============================================================================
-
+#    dbfld_path = os.path.join("GOX_CurableResin_new", "csv_database")
+#    inst2 = Read_datset(dbfld_path)
+#    func = inst2.gen_func("CSTAR", extraporate="linear")
+#    func(100, 1.0e+6)
+#    of_range = np.arange(0.01, 100, 0.1)
+#    plt.plot(of_range, np.array([func(of, 1.0e+6) for of in of_range]))

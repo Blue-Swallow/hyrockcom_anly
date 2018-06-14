@@ -138,30 +138,68 @@ class Main:
 #        error_of = of - of_cal
         self.error_of = error_of
         return(self.error_of)
-        
+            
     def cal_eta(self):
         eta = np.array([])
         for time in self.anl_df.index:
             Pc = self.ex_df.Pc[time]
-            cstr_th = self.func_cstr(self.anl_df.of[time], Pc*1.0e-6)
+            cstr_th = self.func_cstr(self.anl_df.of[time], Pc)
             At = np.pi*np.power(self.input_param["Dt"], 2.0)/4
             cstr_ex = Pc*At/(self.ex_df.mox[time]+self.anl_df.mf[time])
             tmp = cstr_ex/cstr_th
             eta = np.append(eta, tmp[0])
         self.anl_df["eta"]=eta
+
+    def func_error_eq14(self, of, t, eta):
+        """ Return the error of Eq.14
+        """
+        left_eq14 = self.func_left_eq14(of,t,eta)
+        right_eq14 = self.func_right_eq14(t)
+        diff = left_eq14 - right_eq14
+        error = diff/right_eq14
+        return(error)
+
+    def func_left_eq14(self, of, t, eta):
+        """
+        Left-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+        
+        Return
+        -----------
+        left_val: float
+            eta *cstr_th *(1+1/(O/F)) 
+        """
+        Pc = self.ex_df.Pc[t]
+        cstr = self.func_cstr(of, Pc)
+        left_val = eta*cstr*(1 + 1/of)
+        return(left_val)
+
+    def func_right_eq14(self, t):
+        """
+        Right-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+
+        Return
+        -----------
+        right_val: float
+            Pc*At/mox 
+        """
+        Pc = self.ex_df.Pc[t]
+        mox = self.ex_df.mox[t]
+        At = np.pi*np.power(self.input_param["Dt"], 2)/4
+        right_val = Pc*At/mox
+        return(right_val)
         
             
     
     
 def func_Pe(of, Pc, eps, func_gamma):
-    gam = func_gamma(of, Pc*1.0e-6)[0]
+    gam = func_gamma(of, Pc)
     func = lambda Pe: eps - np.power((2/(gam+1)), 1/(gam-1)) * np.power(Pc/Pe, 1/gam) / np.sqrt((gam+1)/(gam-1)*(1-np.power(Pe/Pc, (gam-1)/gam)))   
     Pe = optimize.brentq(func, 1, Pc/2, maxiter=10, xtol=1.0e+3, full_output=False)        
     return(Pe)
 
 def func_Ve(of, Pc, eps, func_cstr, func_gamma):
-    gam = func_gamma(of, Pc*1.0e-6)[0]
-    SON_c = func_cstr(of, Pc*1.0e-6)[0]*gam*np.sqrt(np.power(2/(gam+1), (gam+1)/(gam-1)))
+    gam = func_gamma(of, Pc)
+    SON_c = func_cstr(of, Pc)*gam*np.sqrt(np.power(2/(gam+1), (gam+1)/(gam-1)))
     Pe = func_Pe(of, Pc, eps, func_gamma)
     Ve = np.sqrt(2/(gam-1)*(1-np.power(Pe/Pc, (gam-1)/gam))) * SON_c
     return(Ve)
