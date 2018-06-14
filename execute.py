@@ -425,7 +425,7 @@ class Read_datset:
         file_list = [os.path.basename(split(r))  for r in glob.glob(self.fld_path + "/*.{}".format(self.fexten))]
         return(file_list)
 
-    def gen_func(self, param_name):
+    def gen_func(self, param_name, extraporate="linear"):
         """
         Generate function of calculated parameter with respect to O/F and Pc.
         Return a value after reading csv file and interpolate the data.
@@ -435,6 +435,10 @@ class Read_datset:
         param_name: string
             Parameter name which is a dataset file name \n
             e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
+        
+        extraporate: string; optional
+            "exponent": using f(x)=theta*numpy.exp(x-p)+q to extraporate the region out of database
+            "linear" Default; using linear function to extraporate
 
         Return
         ------
@@ -461,19 +465,68 @@ class Read_datset:
             """
             Pc = Pc*1.0e-6
             cstr_array = func_interp(self.of, Pc)
-            if of<self.of.min():
+            def extrapfunc_exp(of, a, b,diff, ddiff):
+                theta = ddiff/diff
+                p = np.log(diff/theta)/theta + a
+                q = b - np.exp(theta*(a-p))
+                val = np.exp(theta*(a-p))+q
+                return(val)
+            def extrapfunc_exp2(of, a,b, diff, ddiff):
+                p = a - ddiff/diff
+                theta = np.power(diff,2)/(ddiff*np.exp(ddiff/diff))
+                q = b - theta*np.exp(a-p)
+                val = theta*np.exp(a-p) + q
+                return(val)
+            def extrapfunc_ln(of, a,b, diff, ddiff):
+                p = diff/ddiff + a
+                theta = -np.power(diff, 2.0)/ddiff
+                q = b - theta*np.log(a-p)
+                val = theta*np.log(of - p) + q
+                return(val)
+            def extrapfunc_inverse(of, a,b, diff, ddiff):
+                p = 2*diff/ddiff + a
+                theta = -diff*np.power(a-p, 2.0)
+                q = b - theta/(a-p)
+                val = theta/(of-p) + q
+                return(val)
+            def extrapfunc_linear(of, a, b, diff):
+                val= diff*(of-a) + b
+                return(val)
+            
+            if of<self.of.min(): #when assigned O/F is smaller than minimum O/F of database
                 diff_begin = (-3*cstr_array[0] +4*cstr_array[1] -cstr_array[2])/(2*(self.of[1]-self.of[0]))
-                ddiff_begin = (2*cstr_array[0] -5*cstr_array[1] + 4*cstr_array[2] -cstr_array[3])/np.power((self.of[1]-self.of[0]),2.0)
-                func_extrap = lambda of: diff_begin*(of-self.of.min()) + cstr_array[0]
-                val = func_extrap(of)
-            elif self.of.max()<of:
+                ddiff_begin = -(2*cstr_array[0] -5*cstr_array[1] + 4*cstr_array[2] -cstr_array[3])/np.power((self.of[1]-self.of[0]),2.0)
+                a = self.of.min()
+                b = cstr_array[0]
+                if extraporate=="exp":
+                    val = extrapfunc_exp(of, a, b, diff_begin, ddiff_begin)
+                elif extraporate=="exp2":
+                    val = extrapfunc_exp2(of, a, b, diff_begin, ddiff_begin)
+                elif extraporate=="ln":
+                    val = extrapfunc_ln(of, a, b, diff_begin, ddiff_begin)
+                elif extraporate=="inverse":
+                    val = extrapfunc_inverse(of, a, b, diff_begin, ddiff_begin)
+                elif extraporate=="linear":
+                    val = extrapfunc_linear(of, a, b, diff_begin)
+            elif self.of.max()<of: #when assigned O/F is larger than maximum O/F of database
                 diff_end = (cstr_array[len(cstr_array)-3] -4* cstr_array[len(cstr_array)-2] +3*cstr_array[len(cstr_array)-1])/(2*(self.of[len(self.of)-1]-self.of[len(self.of)-2]))
                 ddiff_end = (-2*cstr_array[len(cstr_array)-4] +4*cstr_array[len(cstr_array)-3] -5*cstr_array[len(cstr_array)-2] +2*cstr_array[len(cstr_array)-1])/np.power(self.of[len(self.of)-1]-self.of[len(self.of)-2], 2.0)
-                func_extrap = lambda of: diff_end*(of-self.of.max()) + cstr_array[len(cstr_array)-1]
-                val = func_extrap(of)
-            else:
-                val = func_interp(of, Pc)[0]
+                a = self.of.max()
+                b = cstr_array[len(cstr_array)-1]
+                if extraporate=="exp":
+                    val = extrapfunc_exp(of, a, b, diff_end, ddiff_end)
+                elif extraporate=="exp2":
+                    val = extrapfunc_exp2(of, a, b, diff_end, ddiff_end)
+                elif extraporate=="ln":
+                    val = extrapfunc_ln(of, a, b, diff_end, ddiff_end)
+                elif extraporate=="inverse":
+                    val = extrapfunc_inverse(of, a, b, diff_end, ddiff_end)
+                elif extraporate=="linear":
+                    val = extrapfunc_linear(of, a, b, diff_end)
+            else: #when assigned O/F is with in the range of O/F
+                    val = func_interp(of, Pc)[0]
             return(val)
+        
         return(func)
         
     def plot(self, param_name, pickup_num):    
@@ -513,9 +566,13 @@ class Read_datset:
 
 
 if __name__ == "__main__":
-#    inst = CEA_execute()
-#    of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
-#    cdir = os.path.dirname(os.path.abspath(__file__))
-    dbfld_path = os.path.join("GOX_PE", "csv_database")
-    inst2 = Read_datset(dbfld_path)
+    inst = CEA_execute()
+    of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
+
+#==============================================================================
+#     dbfld_path = os.path.join("GOX_PE", "csv_database")
+#     inst2 = Read_datset(dbfld_path)
+#     func = inst2.gen_func("CSTAR")
+#     func(60, 1.0e+6)
+#==============================================================================
 
