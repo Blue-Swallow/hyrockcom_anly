@@ -27,7 +27,15 @@ class Main:
 #        self.iterat_lmbd(maxiter=20)
 #        self.cal_eta()
 
-    def iterat_lmbd(self, maxiter=10, lmbd_init=0.75, lmbd_min=0.1, lmbd_max=2.0):
+    def execute_RT(self):
+        lmbd = self.iterat_lmbd(maxiter=10, lmbd_init=0.75, lmbd_min=0.5, lmbd_max=2.0)
+        self.anl_df["lambda"] = np.array([lmbd for i in self.anl_df.index])
+        self.anl_df["eta"] = self.cal_eta()
+        self.anl_df["Pe"] = np.array([func_Pe(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_gamma).output() for t in self.anl_df.index])
+        self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
+        return(self.anl_df)
+
+    def iterat_lmbd(self, maxiter=10, lmbd_init=0.75, lmbd_min=0.5, lmbd_max=2.0):
         """
         Function to calculate nozzle coefficient
         
@@ -43,13 +51,22 @@ class Main:
         """
         self.counter_lmbd_iterat = 1
         try:
-            self.lmbd = optimize.newton(self.func_Mf, lmbd_init, maxiter=maxiter, tol=1.0e-3)
+            self.lmbd = optimize.newton(self.func_error_Mf, lmbd_init, maxiter=maxiter, tol=1.0e-3)
         except:
-            self.lmbd = optimize.brentq(self.func_Mf, lmbd_min, lmbd_max, maxiter=maxiter, xtol=1.0e-3, full_output=False)
+            self.lmbd = optimize.brentq(self.func_error_Mf, lmbd_min, lmbd_max, maxiter=maxiter, xtol=1.0e-3, full_output=False)
         return(self.lmbd)
 
+    def func_error_Mf(self, lmbd):
+        Mf_cal = self.func_Mf_cal(lmbd)
+        Mf_ex = self.func_Mf_ex()
+        diff = Mf_cal - Mf_ex
+        error = diff/Mf_cal
+        print("Difference of Mf = {} [kg]\n\n".format(diff))
+        self.error_Mf = error
+        self.counter_lmbd_iterat += 1
+        return(error)
 
-    def func_Mf(self, lmbd):
+    def func_Mf_cal(self, lmbd):
         """
         Function to calculate difference of fuel consumption
         
@@ -68,13 +85,12 @@ class Main:
         for i in np.where(mf<0): #when mf<0, zero-value is inserted to mf
             mf[i] = 0.0
         self.anl_df["mf"] = mf
-        self.Mf = integrate.simps(mf, np.array(self.ex_df.index))
-        diff = self.Mf - self.input_param["Mf"]
-        self.error_Mf = diff/self.Mf
-        print("Difference of Mf = {} [kg]\n\n".format(diff))
-        self.counter_lmbd_iterat += 1
-        return(self.error_Mf)
+        Mf_cal = integrate.simps(mf, np.array(self.ex_df.index))
+        return(Mf_cal)
 
+    def func_Mf_ex(self):
+        val = self.input_param["Mf"]
+        return(val)
 
     def iterat_newton_of(self, lmbd):
         """
@@ -108,16 +124,14 @@ class Main:
         print("lambda = {}".format(lmbd))
         eps = self.input_param["eps"]
         Ae = np.power(self.input_param["Dt"], 2)*np.pi/4 * eps
+        of_init = self.of_init.where(self.of_init<=0, 0.1e-3)
         for i in tqdm(self.ex_df.index):
-#==============================================================================
-#             func = lambda of: lmbd*self.ex_df.mox[i]*func_Ve(of, self.ex_df.Pc[i], eps, self.func_cstr, self.func_gamma)\
-#             / (self.ex_df.F[i] - (func_Pe(of, self.ex_df.Pc[i], eps, self.func_gamma)-self.Pa)*Ae\
-#                - lmbd*func_Ve(of, self.ex_df.Pc[i], eps, self.func_cstr, self.func_gamma)*self.ex_df.mox[i])
-#==============================================================================
             try:
-                tmp = optimize.newton(self.func_of, self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
+#                tmp = optimize.newton(self.func_error_of, of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
+                tmp = optimize.newton(self.func_error_eq9, of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
             except:
-                tmp = optimize.brentq(self.func_of, -1.0e-3, 1.0e+3, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+#                tmp = optimize.brentq(self.func_error_of, -1.0e-3, 1.0e+3, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                tmp = optimize.brentq(self.func_error_eq9, 1.0e-3, 1.0e+3, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
             self.of = np.append(self.of, tmp)
             j +=1
         self.anl_df["of"] = self.of
@@ -128,9 +142,9 @@ class Main:
         plt.show()
         return(self.of)
 
-    def func_of(self, of, time, lmbd, eps, Ae):
+    def func_error_of(self, of, time, lmbd, eps, Ae):
         Ve = func_Ve(of, self.ex_df.Pc[time], eps, self.func_cstr, self.func_gamma)
-        Pe = func_Pe(of, self.ex_df.Pc[time], eps, self.func_gamma)
+        Pe = func_Pe(of, self.ex_df.Pc[time], eps, self.func_gamma).output()
         mox = self.ex_df.mox[time]
         F = self.ex_df.F[time]
         of_cal = lmbd*mox*Ve / (F - (Pe-self.Pa)*Ae - lmbd*Ve*mox)
@@ -139,6 +153,46 @@ class Main:
         self.error_of = error_of
         return(self.error_of)
             
+    def func_error_eq9(self, of, t, lmbd,eps,Ae):
+        """ Return the error of Eq.14
+        """
+        left_eq9 = self.func_left_eq9(t)
+        right_eq9 = self.func_right_eq9(of,t,lmbd,eps,Ae)
+        diff = right_eq9 - left_eq9
+        error = diff/left_eq9
+#        error = diff/right_eq9
+        return(error)
+
+    def func_left_eq9(self, time):
+        """
+        Left-hand side value of Eq.(9), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+        
+        Return
+        -----------
+        left_val: float
+            F : thrust ;[N] 
+        """
+        F = self.ex_df.F[time]
+        left_val = F
+        return(left_val)
+
+    def func_right_eq9(self, of, time, lmbd, eps, Ae):
+        """
+        Right-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+
+        Return
+        -----------
+        right_val: float
+            lambda*Ve*mox*(1+1/of) + (Pe-Pa)*Ae
+        """
+        Ve = func_Ve(of, self.ex_df.Pc[time], eps, self.func_cstr, self.func_gamma)
+        mox = self.ex_df.mox[time]
+        left_term = lmbd*Ve*mox*(1+1/of)
+        Pe = func_Pe(of, self.ex_df.Pc[time], eps, self.func_gamma).output()
+        right_term = (Pe-self.Pa)*Ae
+        right_val = left_term + right_term
+        return(right_val)
+    
     def cal_eta(self):
         eta = np.array([])
         for time in self.anl_df.index:
@@ -147,79 +201,65 @@ class Main:
             At = np.pi*np.power(self.input_param["Dt"], 2.0)/4
             cstr_ex = Pc*At/(self.ex_df.mox[time]+self.anl_df.mf[time])
             tmp = cstr_ex/cstr_th
-            eta = np.append(eta, tmp[0])
+            eta = np.append(eta, tmp)
         self.anl_df["eta"]=eta
 
-    def func_error_eq14(self, of, t, eta):
-        """ Return the error of Eq.14
-        """
-        left_eq14 = self.func_left_eq14(of,t,eta)
-        right_eq14 = self.func_right_eq14(t)
-        diff = left_eq14 - right_eq14
-        error = diff/right_eq14
+class func_Pe():
+    def __init__(self, of, Pc, eps, func_gamma):
+        self.of = of
+        self.Pc = Pc
+        self.eps = eps
+        self.func_gamma = func_gamma
+        self.Pe = self.iterat_Pe()
+    
+    def output(self):
+        return(self.Pe)
+    
+    def iterat_Pe(self):
+        try:
+            Pe = optimize.newton(self.func_error_eps, self.Pc/2, maxiter=100, tol=1.0e+3)
+        except:
+            Pe = optimize.brentq(self.func_error_eps, 1, self.Pc/2, maxiter=100, xtol=1.0e+3, full_output=False)
+        return(Pe)
+    
+    def func_error_eps(self, Pe):
+        eps_cal = self.func_eps_cal(Pe)
+        eps_real = self.func_eps_real()
+        diff = eps_cal - eps_real
+        error = diff/eps_cal
         return(error)
-
-    def func_left_eq14(self, of, t, eta):
-        """
-        Left-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
-        
-        Return
-        -----------
-        left_val: float
-            eta *cstr_th *(1+1/(O/F)) 
-        """
-        Pc = self.ex_df.Pc[t]
-        cstr = self.func_cstr(of, Pc)
-        left_val = eta*cstr*(1 + 1/of)
-        return(left_val)
-
-    def func_right_eq14(self, t):
-        """
-        Right-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
-
-        Return
-        -----------
-        right_val: float
-            Pc*At/mox 
-        """
-        Pc = self.ex_df.Pc[t]
-        mox = self.ex_df.mox[t]
-        At = np.pi*np.power(self.input_param["Dt"], 2)/4
-        right_val = Pc*At/mox
-        return(right_val)
-        
-            
     
+    def func_eps_cal(self, Pe):
+        gam = self.func_gamma(self.of, self.Pc)
+        eps_cal = np.power((2/(gam+1)), 1/(gam-1)) * np.power(self.Pc/Pe, 1/gam) / np.sqrt((gam+1)/(gam-1)*(1-np.power(Pe/self.Pc, (gam-1)/gam)))
+        return(eps_cal)
     
-def func_Pe(of, Pc, eps, func_gamma):
-    gam = func_gamma(of, Pc)
-    func = lambda Pe: eps - np.power((2/(gam+1)), 1/(gam-1)) * np.power(Pc/Pe, 1/gam) / np.sqrt((gam+1)/(gam-1)*(1-np.power(Pe/Pc, (gam-1)/gam)))   
-    Pe = optimize.brentq(func, 1, Pc/2, maxiter=10, xtol=1.0e+3, full_output=False)        
-    return(Pe)
+    def func_eps_real(self):
+        return(self.eps)
+
 
 def func_Ve(of, Pc, eps, func_cstr, func_gamma):
     gam = func_gamma(of, Pc)
     SON_c = func_cstr(of, Pc)*gam*np.sqrt(np.power(2/(gam+1), (gam+1)/(gam-1)))
-    Pe = func_Pe(of, Pc, eps, func_gamma)
+    Pe = func_Pe(of, Pc, eps, func_gamma).output()
     Ve = np.sqrt(2/(gam-1)*(1-np.power(Pe/Pc, (gam-1)/gam))) * SON_c
     return(Ve)
 
 if __name__ == "__main__":
-# =============================================================================
-#     import RockCombstAnly
-#     import matplotlib.pyplot as plt
-#     inst = RockCombstAnly.Cui_input()
-#     db_of = RockCombstAnly.RT(inst).of
-#     db_Pc = RockCombstAnly.RT(inst).Pc
-#     ex_df = RockCombstAnly.RT(inst).ex_df
-#     func_cstr = RockCombstAnly.RT(inst).cstr
-#     func_gamma = RockCombstAnly.RT(inst).gamma
-#     input_param = RockCombstAnly.RT(inst).input_param
-# =============================================================================
+    import RockCombstAnly
+    import matplotlib.pyplot as plt
+    inst = RockCombstAnly.Cui_input()
+    db_of = RockCombstAnly.RT(inst).of
+    db_Pc = RockCombstAnly.RT(inst).Pc
+    ex_df = RockCombstAnly.RT(inst).ex_df
+    func_cstr = RockCombstAnly.RT(inst).cstr
+    func_gamma = RockCombstAnly.RT(inst).gamma
+    input_param = RockCombstAnly.RT(inst).input_param
     
     result = Main(ex_df, func_cstr, func_gamma, input_param)
-    result.iterat_lmbd(maxiter=20)
-    result.cal_eta()
+    df = result.execute_RT()
+#    result.iterat_lmbd(maxiter=20)
+#    result.cal_eta()
 #    result.iterat_newton_of(0.9)
     
 #    time = 0.0
@@ -227,8 +267,8 @@ if __name__ == "__main__":
 #    eps = 2.0
 #    Ae = inst.input_param["eps"]*np.power(inst.input_param["Dt"],2.0)*np.pi/4
 #    of_range = np.arange(-5, 10, 0.1)
-#    plt.plot(of_range, [result.func_of(x, time, lmbd, eps, Ae) for x in of_range])
+#    plt.plot(of_range, [result.func_error_of(x, time, lmbd, eps, Ae) for x in of_range])
 #    plt.plot(of_range, [func_Pe(x, result.ex_df.Pc[time], 2.0, func_gamma) for x in of_range])
-#    optimize.newton(result.func_of, result.of_init[time], maxiter=100, tol=1.0e-3, args=(time, lmbd, eps, Ae))
-#    optimize.newton(result.func_of, 35, maxiter=100, tol=1.0e-3, args=(time, lmbd, eps, Ae))
-#    optimize.brentq(result.func_of, -1.0e+3, 1.0e+3, maxiter=50, xtol=1.0e-3, args=(time, lmbd, eps, Ae))
+#    optimize.newton(result.func_error_of, result.of_init[time], maxiter=100, tol=1.0e-3, args=(time, lmbd, eps, Ae))
+#    optimize.newton(result.func_error_of, 35, maxiter=100, tol=1.0e-3, args=(time, lmbd, eps, Ae))
+#    optimize.brentq(result.func_error_of, -1.0e+3, 1.0e+3, maxiter=50, xtol=1.0e-3, args=(time, lmbd, eps, Ae))
