@@ -22,9 +22,11 @@ class Main:
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_eta_iterat = 0
         
-    def do_iterat(self, maxiter=10):
+    def execute_RT(self, maxiter=10):
 #        self.iterat_newton_eta(maxiter, eta_init=0.7)
-        self.iterat_brentq_eta(maxiter)
+        eta = self.iterat_brentq_eta(maxiter, eta_min=0.5, eta_max=2.0)
+        self.anl_df["eta"] = np.array([eta for i in self.anl_df.index])
+        return(self.anl_df)
 
     def iterat_brentq_eta(self, maxiter, eta_min=0.5, eta_max=2.0):
         """
