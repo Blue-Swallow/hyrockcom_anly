@@ -9,7 +9,7 @@ import pandas as pd
 from scipy import integrate
 
 
-def main(ex_df, input_param):
+def Main(ex_df, input_param):
     """
     Function to calculate O/F and time-averaged characteristic exhaust velocity
     
@@ -76,6 +76,6 @@ if __name__ == "__main__":
     func_gamma = RockCombstAnly.RT(inst).gamma
     input_param = RockCombstAnly.RT(inst).input_param
     
-    result = main(ex_df, input_param)
+    result = Main(ex_df, input_param)
     plt.plot(result.index, result.of)
 #    plt.ylim(-1, 10)
