@@ -21,7 +21,8 @@ class CEA_execute:
     Class to excecute CEA calculation
     """
 
-    def __init__(self):
+    def __init__(self, fld_path=None):
+        self.fld_path = fld_path
         pass
     
     def _getpath_(self):
@@ -45,19 +46,20 @@ class CEA_execute:
         """
         
         cadir = os.path.dirname(os.path.abspath(__file__))
-        print("Input Folder Name (e.g. \"O2+PMMA\")>>")
-        fld_path = cadir + "/" + input()
-        print("Input Polymerization Number. If you did't assign it, please input \"n\" \n(Directory structure is like \"O2+PMMA/n=100\")")
-        num = input()
+        if self.fld_path is None:
+            self.fld_path = cadir + "/" + input("Input Folder Name (e.g. \"O2+PMMA\")\n>>")
+#        print("Input Polymerization Number. If you did't assign it, please input \"n\" \n(Directory structure is like \"O2+PMMA/n=100\")")
+#        num = input()
+        num = "n"
         if num=="n":
 #            global outfld_path
-            inpfld_path = fld_path + "/inp"
-            outfld_path = fld_path + "/out"
-            dbfld_path = fld_path + "/csv_database"
+            inpfld_path = self.fld_path + "/inp"
+            outfld_path = self.fld_path + "/out"
+            dbfld_path = self.fld_path + "/csv_database"
         else:
-            inpfld_path = fld_path + "/inp_n={}".format(num)
-            outfld_path = fld_path + "/out_n={}".format(num)
-            dbfld_path = fld_path + "/csv_database_n={}".format(num)
+            inpfld_path = self.fld_path + "/inp_n={}".format(num)
+            outfld_path = self.fld_path + "/out_n={}".format(num)
+            dbfld_path = self.fld_path + "/csv_database_n={}".format(num)
         if os.path.exists(inpfld_path):
             if os.path.exists(outfld_path):
                 pass
@@ -68,7 +70,7 @@ class CEA_execute:
             else:
                 os.mkdir(dbfld_path) #make output folder
         else:
-            sys.exit("There is no such a directory, \n\"{}\"".format(fld_path))
+            sys.exit("There is no such a directory, \n\"{}\"".format(self.fld_path))
         return(cadir, inpfld_path, outfld_path, dbfld_path)
 
 
