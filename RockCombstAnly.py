@@ -137,10 +137,7 @@ class Cui_input():
                         sys.exit()
             else:
                 print("There is no such a Folder\n{}".format(self.ex_path))           
-
-
-
-                
+               
     def _select_mode_(self):
         """
         Select a calculation mode; RT-1,2,3,4,5,...
@@ -207,7 +204,8 @@ class Cui_input():
                     execute_class.all_exe()
                     break
                 elif flag == "n":
-                    sys.exit()
+                    pass
+
 
 
 
