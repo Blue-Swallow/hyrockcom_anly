@@ -8,7 +8,13 @@ Created on Sat Apr 14 13:40:16 2018
 import os, sys
 import numpy as np
 import pandas as pd
-from execute import Read_datset
+import execute
+import gen_inp
+import rt_1
+#import rt_2
+import rt_3
+#import rt_4
+import rt_5
 
 
 class Cui_input():
@@ -45,13 +51,12 @@ class Cui_input():
     
     self.input_param: dict{key, value}
         key: str, "mode"
-        value: int, 1, 2, 3, 4, 5
+        value: int, 1, 3, 4, 5
         the value is reperesentative number,
-        1: RT-1, Re-construction technique 1 
-        2: RT-2, Re-construction technique 2
-        3: RT-3, Re-construction technique 3 
-        4: RT-4, Re-construction technique 4
-        5: RT-5, Re-construction technique 5
+        1: RT-1, Re-construction technique 1; using average c*
+        3: RT-3, Re-construction technique 3; using constant nozzle discharge coefficient lambda1 
+        4: RT-4, Re-construction technique 4; using constant nozzle discharge coefficient lambda2 
+        5: RT-5, Re-construction technique 5; using constant c* efficiency
         
         key: str, "Dt"
         value: float, nozzle throat diameter [m]
@@ -78,14 +83,13 @@ class Cui_input():
             self._sntns_df_ = self._sntns_df_.append(pd.DataFrame(self._tmp_[i], index=[i]))
 #        self._inp_lang_()
         self._get_expath_()
-        self._get_ceapath_()
-        self.cea_db = Read_datset(self.cea_path)
         self.input_param = dict()
         self._select_mode_()
         self._input_nozzle_()
         self._input_eps_()
         self._input_consump_()
-        
+        self._get_ceapath_()
+        self.cea_db = execute.Read_datset(self.cea_path)
 
     def _inp_lang_(self):
         """
@@ -108,8 +112,7 @@ class Cui_input():
         """
         cadir = os.path.dirname(os.path.abspath(__file__))
         while(True):
-            print("\nInput a Experiment Name (The Name of Folder Containing Experiment Data) >>")
-            foldername = input()
+            foldername = input("Input a Experiment Name (The Name of Folder Containing Experiment Data) \n>>")
             self.ex_path = os.path.join(cadir, foldername)
             if os.path.exists(self.ex_path):
                 self.ex_file = "ex_dat.csv"
@@ -123,18 +126,64 @@ class Cui_input():
                     self.ex_df.Pc = self.ex_df.Pc * 1.0e+6 + 0.1013 #convert [MPaG] to [Pa]
                     break
                 else: # create template file
-                    print("\nThere is no such a experiment data/n{}".format(file_path))
-                    print("\nDo you want to make a template file ?\ny/n ?")
-                    flag = input()
+                    print("\nThere is no such a experiment data\n{}".format(file_path))
+                    flag = input("Do you want to make a template file ?\ny/n ?\n>>")
                     if flag == "y":
                         df = pd.DataFrame(self.ex_param, index=[0], columns=p_name)
                         df.to_csv(file_path, index= False)
+                        print("Complete to generate a template file. Please input the experimental data.")
+                        print("Please aboid using any negative values and data that has vivration with time")
                     elif flag == "n":
                         sys.exit()
             else:
-                print("\nThere is no such a Folder\n{}".format(self.ex_path))           
+                print("There is no such a Folder\n{}".format(self.ex_path))           
 
 
+
+                
+    def _select_mode_(self):
+        """
+        Select a calculation mode; RT-1,2,3,4,5,...
+        """
+        while(True):
+            print("Please select calculation mode.")
+            mode = {1: "RT-1",
+#                    2: "RT-2",
+                    3: "RT-3",
+#                    4: "RT-4",
+                    5: "RT-5"}
+            inp = int(input("1: RT-1; assuming c* is constant\n"+\
+#                  "2: RT-2; assuming c* efficiency is constant\n"+\
+                  "3: RT-3; assuming nozzle discharge coefficient is constant; lambda1\n"+\
+#                  "4: RT-4; assuming nozzle discharge coefficient is constant; lambda2\n"+\
+                  "5: RT-5; assuming c* efficiency is constant. RT-2 improved with initial O/F\n>>"))
+            if inp in mode.keys():
+                self.input_param["mode"] = inp
+                break
+            else:
+                print("There is no such a mode \"{}\"\n".format(inp))
+                
+    def _input_nozzle_(self):
+        """
+        Input the nozzle diameter [mm]
+        """
+#        print("Please input nozzle throat diameter [mm]\n>>")
+        self.input_param["Dt"] = float(input("Please input nozzle throat diameter [mm]\n>>"))*1.0e-3
+
+    def _input_eps_(self):
+        """
+        Input the nozzle expansion ratio [-]
+        """
+#        print("Please input nozzle expansion ratio")
+        self.input_param["eps"] = float(input("Please input nozzle expansion ratio\n>>"))
+        
+    def _input_consump_(self):
+        """
+        Input the fuel consumption [g]
+        """
+#        print("Please input fuel consumption [g]")
+        self.input_param["Mf"] = float(input("Please input fuel consumption [g]\n>>"))*1.0e-3
+        
     def _get_ceapath_(self):
         """
         Return the folder path cantaining the results of cea calculation.
@@ -142,54 +191,25 @@ class Cui_input():
         """
         cadir = os.path.dirname(os.path.abspath(__file__))
         while(True):
-            print("\nInput the Folder Name Containing Results of CEA >>")
-            foldername = input()
-            self.cea_path = os.path.join(cadir, foldername)
-            self.cea_path = os.path.join(self.cea_path, "csv_database")
+            foldername = input("Input the Folder Name Containing Results of CEA\n>>")
+            self.cea_path = os.path.join(cadir, foldername, "csv_database")
             if os.path.exists(self.cea_path):
                 break
             else:
-                print("There is no such a dataset folder/n{}".format(self.cea_path))
-                
-    def _select_mode_(self):
-        """
-        Select a calculation mode; RT-1,2,3,4,5,...
-        """
-        while(True):
-            print("Please select calculation mode.\n")
-            print("1: RT-1\n2: RT-2\n3: RT-3\n4: RT-4\n5: RT-5\n")
-            mode = {1: "RT-1",
-                    2: "RT-2",
-                    3: "RT-3",
-                    4: "RT-4",
-                    5: "RT-5"}
-            inp = int(input())
-            if inp in mode.keys():
-                self.input_param["mode"] = inp
-                break
-            else:
-                print("There is no such a mode \"{}\"".format(inp))
-                
-    def _input_nozzle_(self):
-        """
-        Input the nozzle diameter [mm]
-        """
-        print("Please input nozzle throat diameter [mm]")
-        self.input_param["Dt"] = float(input())*1.0e-3
+                print("\nThere is no such a dataset folder/n{}".format(self.cea_path))
+                flag = input("Do you want to make a dataset of CEA result ?\ny/n \n>>")
+                if flag == "y":
+                    print("\nPlease input some information to generate \".inp\" files to execute CEA.")
+                    generate_class = gen_inp.Cui_input()
+                    fld_path = generate_class.gen_all()
+                    print("\nNow doing CEA calculation and output csv type data-base files. Please wait.")
+                    execute_class = execute.CEA_execute(fld_path=fld_path)
+                    execute_class.all_exe()
+                    break
+                elif flag == "n":
+                    sys.exit()
 
-    def _input_eps_(self):
-        """
-        Input the nozzle expansion ratio [-]
-        """
-        print("Please input nozzle expansion ratio")
-        self.input_param["eps"] = float(input())
-        
-    def _input_consump_(self):
-        """
-        Input the fuel consumption [g]
-        """
-        print("Please input fuel consumption [g]")
-        self.input_param["Mf"] = float(input())*1.0e-3
+
 
 class RT():
     """
@@ -226,21 +246,25 @@ class RT():
         self.cstr = inst.cea_db.gen_func("CSTAR") #data-base of characteristics exhaust velocity
         self.gamma = inst.cea_db.gen_func("GAMMAs_c") #data-base of specific heat ratio at chamber
         
-    def _call_rt_(self):
+    def call_rt(self):
+        print("Now executing RT calculation. Please wait.")
         if self.input_param["mode"] == 1:
-            anl_df = rt_1.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
-        if self.input_param["mode"] == 2:
-            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
+            anl_df = rt_1.Main(self.ex_df, self.input_param)
+#        if self.input_param["mode"] == 2:
+#            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 3:
-            anl_df = rt_3.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
-        if self.input_param["mode"] == 4:
-            anl_df = rt_4.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
+            anl_df = rt_3.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+#        if self.input_param["mode"] == 4:
+#            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 5:
-            anl_df = rt_5.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
+            anl_df = rt_5.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+        self.anl_df = anl_df
+        return(self.anl_df)
 
 if __name__ == "__main__":
     inst = Cui_input()
-#    RT(inst)
+    df = RT(inst).call_rt()
+    df.to_csv(os.path.join(inst.ex_path, "result.csv"))
     
 
     
