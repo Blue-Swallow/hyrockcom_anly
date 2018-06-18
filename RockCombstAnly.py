@@ -206,9 +206,6 @@ class Cui_input():
                 elif flag == "n":
                     pass
 
-
-
-
 class RT():
     """
     Class executing re-construction technique and acquiering calculated results.
