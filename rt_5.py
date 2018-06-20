@@ -7,6 +7,7 @@ Created on Sat Apr 21 18:03:51 2018
 
 import numpy as np
 import pandas as pd
+import warnings
 import matplotlib.pyplot as plt
 from scipy import integrate
 from scipy import optimize
@@ -25,9 +26,11 @@ class Main:
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_eta_iterat = 0
         
-    def execute_RT(self, maxiter=30):
-#        self.iterat_brentq_eta(maxiter, eta_min=0.5, eta_max=2.0)
-        self.iterat_newton_eta(maxiter, eta_init=0.7)
+    def execute_RT(self, maxiter=30, eta_init=0.8):
+        try:
+            self.iterat_newton_eta(maxiter, eta_init=eta_init)
+        except:
+            self.iterat_brentq_eta(maxiter, eta_min=0.1, eta_max=2.0)
         return(pd.concat([self.ex_df, self.anl_df], axis=1))
         
     def iterat_brentq_eta(self, maxiter, eta_min=0.5, eta_max=2.0):
@@ -71,7 +74,7 @@ class Main:
                 "mp": fuel mass flow rate, [kg/s]
         """
         self.counter_eta_iterat = 1
-        self.eta = optimize.newton(self.func_error_Mf, eta_init, maxiter=maxiter, tol=1.0e-2)
+        self.eta = optimize.newton(self.func_error_Mf, eta_init, maxiter=maxiter, tol=1.0e-3)
         return(self.eta)
 
     def func_error_Mf(self, eta):
@@ -91,7 +94,7 @@ class Main:
         Mf = self.func_Mf(eta)
         diff_Mf = self.input_param["Mf"] - Mf
         error = diff_Mf/Mf
-        print("Error of Mf = {} [%]\n\n".format(error*1.0e+2))
+        print("Error of Mf = {} [%]\n".format((diff_Mf/self.input_param["Mf"])*1.0e+2))
         self.anl_df["eta"] = np.array([eta for i in self.anl_df.index])
         return(error)
 
@@ -144,6 +147,7 @@ class Main:
                 "mp": fuel mass flow rate, [kg/s]
         """
         of = np.array([])
+        warnings.filterwarnings("error")
         j=0
         if self.counter_eta_iterat == 1:
             string = "st"
@@ -160,6 +164,7 @@ class Main:
             try:
                 tmp = optimize.newton(self.func_error_eq14, of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
             except:
+#                print("Using scipy.optimize.brentq method insted of newton")
                 tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, self.of_init.max(), maxiter=100, xtol=1.0e-5, args=(i, eta))                
             of = np.append(of, tmp)
             j +=1
@@ -170,6 +175,7 @@ class Main:
             plt.ylabel("O/F [-]")
             plt.legend()
             plt.show()
+        warnings.resetwarnings()
         return(of)
 
     
