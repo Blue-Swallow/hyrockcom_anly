@@ -6,6 +6,7 @@ Created on Sat May 12 21:42:28 2018
 """
 import numpy as np
 import pandas as pd
+import warnings
 import matplotlib.pyplot as plt
 from scipy import integrate
 from scipy import optimize
@@ -29,8 +30,8 @@ class Main:
         self.Pa = 0.1013*1.0e+6 #Atmospheric pressure [Pa]
 
 
-    def execute_RT(self):
-        lmbd = self.iterat_lmbd(maxiter=20, lmbd_init=0.75, lmbd_min=0.1, lmbd_max=2.0)
+    def execute_RT(self, maxiter=30, lmbd_init=0.9):
+        lmbd = self.iterat_lmbd(maxiter=maxiter, lmbd_init=lmbd_init, lmbd_min=0.1, lmbd_max=2.0)
         self.anl_df["lambda"] = np.array([lmbd for i in self.anl_df.index])
         self.anl_df["Pe"] = np.array([self.func_Pe(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
@@ -51,10 +52,11 @@ class Main:
         self.lmbd: float
             nozzle discharge coefficient
         """
-        self.counter_lmbd_iterat = 1
         try:
+            self.counter_lmbd_iterat = 1
             self.lmbd = optimize.newton(self.func_error_Mf, lmbd_init, maxiter=maxiter, tol=1.0e-3)
         except:
+            self.counter_lmbd_iterat = 1
             self.lmbd = optimize.brentq(self.func_error_Mf, lmbd_min, lmbd_max, maxiter=maxiter, xtol=1.0e-3, full_output=False)
         return(self.lmbd)
 
@@ -63,7 +65,7 @@ class Main:
         Mf_ex = self.func_Mf_ex()
         diff = Mf_cal - Mf_ex
         error = diff/Mf_cal
-        print("Difference of Mf = {} [kg]\n\n".format(diff))
+        print("Error of Mf = {} [%]\n".format(diff/Mf_ex*1.0e+2))
         self.error_Mf = error
         self.counter_lmbd_iterat += 1
         return(error)
@@ -113,6 +115,7 @@ class Main:
                 "mp": fuel mass flow rate, [kg/s]
         """
         self.of = np.array([])
+        warnings.filterwarnings("error")        
         j=0
         if self.counter_lmbd_iterat == 1:
             string = "st"
@@ -141,6 +144,7 @@ class Main:
             plt.ylabel("O/F [-]")
             plt.legend()
             plt.show()
+        warnings.resetwarnings()
         return(self.of)
 
     def func_error_of(self, of, time, lmbd, eps, Ae):
