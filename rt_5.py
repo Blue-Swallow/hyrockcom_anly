@@ -25,10 +25,11 @@ class Main:
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_eta_iterat = 0
         
-    def execute_RT(self, maxiter=10):
+    def execute_RT(self, maxiter=30):
 #        self.iterat_brentq_eta(maxiter, eta_min=0.5, eta_max=2.0)
         self.iterat_newton_eta(maxiter, eta_init=0.7)
         return(pd.concat([self.ex_df, self.anl_df], axis=1))
+        
     def iterat_brentq_eta(self, maxiter, eta_min=0.5, eta_max=2.0):
         """
         Function to calculate O/F using Newton-Raphson method; in this case, using Secant method

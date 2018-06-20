@@ -29,8 +29,8 @@ class Main:
         self.Pa = 0.1013*1.0e+6 #Atmospheric pressure [Pa]
 
 
-    def execute_RT(self):
-        lmbd = self.iterat_lmbd(maxiter=20, lmbd_init=0.75, lmbd_min=0.1, lmbd_max=2.0)
+    def execute_RT(self, maxiter=30):
+        lmbd = self.iterat_lmbd(maxiter=maxiter, lmbd_init=0.75, lmbd_min=0.1, lmbd_max=2.0)
         self.anl_df["lambda"] = np.array([lmbd for i in self.anl_df.index])
         self.anl_df["Pe"] = np.array([self.func_Pe(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
