@@ -11,93 +11,6 @@ from tqdm import tqdm
 cond_name = "cond.txt"
 
 
-def _getpath_():
-    """
-    Return the folder path cantaining "cond.txt"
-    """
-    cadir = os.path.dirname(os.path.abspath(__file__))
-    foldername = input("Input a Case Name (Folder Name)\n>>")
-    path = cadir + "/{}".format(foldername)
-    return(path)
-
-
-def read_cond(path):
-    """
-    Read condition file "cond.txt" containing information to generate "*.inp"
-    
-    Parameters
-    ----------
-    path : string, folder path to generate folder "inp"
-    
-    Returns
-    -------
-    oxid : string
-        Containing oxidizer infromation: name, mass fraction, initial temperature
-    
-    fuel : string
-        Containing fuel infromation: name, mass fraction, initial temperature
-        
-    dh : tuple (x, y)
-        Standard enthalpy of formation, [kJ/mol]
-        x : enthalpy of termanal molecule
-        y : enthalpy of monomer molecule
-        
-    Pc : list [Pc_start, Pc_end, Pc_interval]
-        Chamber pressure, [MPa]
-    
-    of : list [O/F_start, O/F_end, O/F_interval]
-        Ratio of oxidizer to fuel, [-]
-    
-    n : list, [int, ...]
-        Polymerization number
-    
-    elem : list containing 3elm-tuple [(X, a, b), ...]
-        List of elements contained in fuel molecule
-        X: string, symbol of element, e.g. "C", "O", "H"
-        a: string, the number of element contained in a terminal molecule
-        b: string, the number of element contained in a monomer molecule
-    """
-    fpath = path+"/{}".format(cond_name)
-    file = open(fpath,"r")
-
-    value_inp = {"oxid": 1,
-                 "oxid_wt": 1,
-                 "oxid_t,k": 1,
-                 "fuel": 1,
-                 "fuel": 1,
-                 "fuel_wt": 1,
-                 "fuel_t,k": 1}
-    range_inp = ("h,kj/mol","O/F","n","Pc")
-
-    line = str(0)
-    elem = []
-    while line:
-        line = file.readline()
-        dat = line.split()
-        if(len(dat)==0 or dat[0]=="#"):
-            pass
-        elif(dat[0] in value_inp):
-            value_inp[dat[0]]=dat[1]    #get out-put values & through into "value_out"
-        elif(dat[0] in range_inp):
-            if(dat[0]==range_inp[0]):
-                dh = tuple(map(float,dat[1:]))
-            elif(dat[0]==range_inp[1]):
-                of = (float(dat[1]), float(dat[2]), float(dat[3]))
-            elif(dat[0]==range_inp[2]):
-                n = tuple(map(int,dat[1:]))
-            else:
-                Pc = (float(dat[1]), float(dat[2]), float(dat[3]))
-        else:
-            elem = elem + [(dat[0], dat[1], dat[2]),]
-    file.close()
-    
-    oxid = "oxid={} wt={} t,k={}".format(value_inp["oxid"], value_inp["oxid_wt"], value_inp["oxid_t,k"])
-    fuel = "fuel={} wt={} t,k={}".format(value_inp["fuel"], value_inp["fuel_wt"], value_inp["fuel_t,k"])
-#    Pc = float(value_inp["Pc"])
-
-    return(oxid,fuel,dh,Pc,of,n,elem)
-
-
 def make_inp(path, option, of, Pc, oxid, fuel, h, elem, eps, n=""):
     """
     Write information in input file, "*.inp".
@@ -125,8 +38,6 @@ def make_inp(path, option, of, Pc, oxid, fuel, h, elem, eps, n=""):
     n: int
         polimerization number
     """
-    #check existence & create folder"inp"
-#    fld_name = "inp_n={}".format(n) # folder name e.g. "n=100"
 
     if len(n) == 0:
         fld_name = "inp"
@@ -150,36 +61,6 @@ def make_inp(path, option, of, Pc, oxid, fuel, h, elem, eps, n=""):
     outp = "transport"
     file.write("prob\n\t{}\nreact\n\t{}\n\t{}\noutput\t{}\nend\n".format(prob,oxid,fuel,outp))
     file.close()
-
-
-#def gen_all_cond(path):
-#    """
-#    Generate input file with respect to every condition
-#    
-#    Parameters
-#    ----------
-#    path: string
-#        Folder path where this function will make "inp" floder storing ".inp"
-#
-#        
-#    """
-#    oxid,fuel,dh,Pc,of,n,elem  = read_cond(path)
-#    of = np.arange(of[0], of[1], of[2])
-#    Pc = np.arange(Pc[0], Pc[1], Pc[2])
-#    
-#    for k in range(len(n)):
-#        count = k
-#        h_input = dh[0] + dh[1]*n[k]
-#        elem_input = ""
-#        for i in range(len(elem)):
-#            elem_name = elem[i][0]
-#            elem_num = int(elem[i][1]) + int(elem[i][2])*n[k]
-#            elem_input = elem_input+"{} {} ".format(elem_name, elem_num)
-#        for i in range(np.size(Pc)):
-#            for j in range(np.size(of)):
-#                make_inp(path, of[j], Pc[i], oxid, fuel, h_input, elem_input, 1.0, n=n[k])
-##                pass
-#    return(count)
 
 
 class Cui_input():
@@ -404,6 +285,15 @@ class Cui_input():
         print(self.sntns_df[self.lang]["Pc"])
         self.Pc = list(map(lambda x: float(x) ,input().split()))
 
+    def _getpath_(self):
+        """
+        Return the folder path which will cantain cea files: .inp, .out and csv cea-database
+        """
+        cadir = os.path.dirname(os.path.abspath(__file__))
+        foldername = input("Input a Case Name (Folder Name)\n>>")
+        path = os.path.join(cadir, "cea_db", foldername)
+        return(path)
+
     def gen_all(self):
         """
         Generate input file with respect to every condition
@@ -427,7 +317,7 @@ class Cui_input():
             of: list, [start, end, interval], each element type is float  \n
             
         """
-        path = _getpath_()
+        path = self._getpath_()
 #        oxid,fuel,dh,Pc,of,n,elem  = read_cond(path)
         of = np.arange(self.of[0], self.of[1], self.of[2])
         Pc = np.arange(self.Pc[0], self.Pc[1], self.Pc[2])

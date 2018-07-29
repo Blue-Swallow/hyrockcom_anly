@@ -11,9 +11,7 @@ import pandas as pd
 import execute
 import gen_inp
 import rt_1
-#import rt_2
 import rt_3
-#import rt_4
 import rt_5
 
 
@@ -112,8 +110,8 @@ class Cui_input():
         """
         cadir = os.path.dirname(os.path.abspath(__file__))
         while(True):
-            foldername = input("\nInput a Experiment Name (The Name of Folder Containing Experiment Data) \n>>")
-            self.ex_path = os.path.join(cadir, foldername)
+            foldername = input("\nInput a Experiment Name (The Name of Folder Containing Experiment Data in \"exp_dat\" folder) \n>>")
+            self.ex_path = os.path.join(cadir, "exp_dat" ,foldername)
             if os.path.exists(self.ex_path):
                 self.ex_file = "ex_dat.csv"
                 file_path = os.path.join(self.ex_path, self.ex_file)
@@ -188,8 +186,8 @@ class Cui_input():
         """
         cadir = os.path.dirname(os.path.abspath(__file__))
         while(True):
-            foldername = input("\nInput the Folder Name Containing Results of CEA\n>>")
-            self.cea_path = os.path.join(cadir, foldername, "csv_database")
+            foldername = input("\nInput the Folder Name Containing Results of CEA in \"cea_db\" folder \n>>")
+            self.cea_path = os.path.join(cadir, "cea_db", foldername, "csv_database")
             if os.path.exists(self.cea_path):
                 break
             else:

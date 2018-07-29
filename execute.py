@@ -4,12 +4,10 @@ Execute CEA calculation
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import os, sys, glob, shutil
-import numpy as np
 from scipy import interpolate
 import pandas as pd
-import collections
+import matplotlib.pyplot as plt
+import os, sys, glob, shutil
 import re, copy
 import tqdm
 from subprocess import*
@@ -47,19 +45,20 @@ class CEA_execute:
         
         cadir = os.path.dirname(os.path.abspath(__file__))
         if self.fld_path is None:
-            self.fld_path = cadir + "/" + input("Input Folder Name (e.g. \"O2+PMMA\")\n>>")
+            input_path = input("Input Folder Name (e.g. \"O2+PMMA\")\n>>")
+            self.fld_path = os.path.join(cadir, "cea_db", input_path)
 #        print("Input Polymerization Number. If you did't assign it, please input \"n\" \n(Directory structure is like \"O2+PMMA/n=100\")")
 #        num = input()
         num = "n"
         if num=="n":
 #            global outfld_path
-            inpfld_path = self.fld_path + "/inp"
-            outfld_path = self.fld_path + "/out"
-            dbfld_path = self.fld_path + "/csv_database"
+            inpfld_path = os.path.join(self.fld_path, "inp")
+            outfld_path = os.path.join(self.fld_path, "out")
+            dbfld_path = os.path.join(self.fld_path, "csv_database")
         else:
-            inpfld_path = self.fld_path + "/inp_n={}".format(num)
-            outfld_path = self.fld_path + "/out_n={}".format(num)
-            dbfld_path = self.fld_path + "/csv_database_n={}".format(num)
+            inpfld_path = os.path.join(self.fld_path, "inp_n={}".format(num))
+            outfld_path = os.path.join(self.fld_path, "out_n={}".format(num))
+            dbfld_path = os.path.join(self.fld_path + "csv_database_n={}".format(num))
         if os.path.exists(inpfld_path):
             if os.path.exists(outfld_path):
                 pass
@@ -112,7 +111,7 @@ class CEA_execute:
             It is required to put ".inp" file in the same directory with "FCEA2.exe"
         """
         #cea_fname : Name and case of CEA input-file & output-file
-        cea_path = "FCEA2.exe"
+        cea_path = os.path.join("cea", "FCEA2.exe")
         command = inp_fname + "\n"
         p = Popen(cea_path, stdin=PIPE, stdout=PIPE)
         p.stdin.write(bytes(command,"utf-8"))
@@ -137,10 +136,10 @@ class CEA_execute:
           
                
         for i, fname in enumerate(tqdm.tqdm(inp_list)):
-            shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"tmp.inp"))
+            shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"cea","tmp.inp"))
             self.single_exe("tmp")
-            shutil.copy(os.path.join(cadir,"tmp.out"), os.path.join(outfld_path, fname+".out"))
-            cond, therm, trans, rock = Read_output.read_out("tmp")
+            shutil.copy(os.path.join(cadir, "cea", "tmp.out"), os.path.join(outfld_path, fname+".out"))
+            cond, therm, trans, rock = Read_output("cea").read_out("tmp")
             
             therm.update(trans) #combine dict "therm" and dict "trans"
 
@@ -198,6 +197,16 @@ class CEA_execute:
         return(of, Pc, value_c, value_t, value_e, value_rock)
 
 class Read_output:
+    """ Read contens in one ".out" file
+    
+    Parameter
+    ---------
+    fld_path: string
+        folder path which contains .out file
+    """
+    
+    def __init__(self, fld_path):
+        self.fld_path = fld_path
     """
     Class to read ".out" file
     """
@@ -206,8 +215,7 @@ class Read_output:
     rock_param  = ["CSTAR", "CF", "Ivac", "Isp"]
     trans_param = ["VISC", "CONDUCTIVITY", "PRANDTL"]
     
-    @classmethod
-    def _vextract_(cls, str_list):
+    def _vextract_(self, str_list):
         """
         Extract calculated value from splitted data-list containing raw-data string
         """
@@ -228,14 +236,14 @@ class Read_output:
         return(val_list)
                 
     
-    @classmethod
-    def read_out(cls, cea_fname):
+    def read_out(self, cea_fname):
         """
         Read a ".out" file
         
         Parameters
         ----------
-        cea_fname: sting, path of ".out" file without .out extent.
+        cea_fname: sting
+            file name of ".out" file with out ".out" extension.
         
         Return
         ------
@@ -262,26 +270,26 @@ class Read_output:
                 t: float, a value at the throat
                 e: float, a value at the end of nozzle               
         """
-        out_fname = cea_fname + ".out"
-        file = open(out_fname,"r")
+        out_fpath = os.path.join(self.fld_path, cea_fname + ".out")
+        file = open(out_fpath,"r")
         
 #        cond_param = ["O/F", "Pc", "PHI"]
-        cond_param = cls.cond_param
+        cond_param = self.cond_param
         emp_list = ["" for i in range(len(cond_param))]
         cond_param = dict(zip(cond_param, emp_list))
         
 #        therm_param = ["P", "T", "RHO", "H", "U", "G", "S", "M", "Cp", "GAMMAs", "SON", "MACH"]
-        therm_param = cls.therm_param
+        therm_param = self.therm_param
         emp_list = ["" for i in range(len(therm_param))]
         therm_param = dict(zip(therm_param, emp_list))
         
 #        rock_param  = ["Ae/At", "CSTAR", "CF", "Ivac", "Isp"]
-        rock_param = cls.rock_param
+        rock_param = self.rock_param
         emp_list = ["" for i in range(len(rock_param))]
         rock_param = dict(zip(rock_param, emp_list))
         
 #        rock_param  = ["Ae/At", "CSTAR", "CF", "Ivac", "Isp"]
-        trans_param = cls.trans_param
+        trans_param = self.trans_param
         emp_list = ["" for i in range(len(trans_param))]
         trans_param = dict(zip(trans_param, emp_list))
     
@@ -299,25 +307,25 @@ class Read_output:
             else: # not-empty line
                 dat_head = dat[0].split(",")[0]
                 if(dat_head in cond_param and len(dat)>3):
-                    tmp = cls._vextract_(dat)
+                    tmp = self._vextract_(dat)
                     cond_param["O/F"] = tmp[0]
                     cond_param["PHI"] = tmp[3]
                 elif(dat_head in therm_param): #line containing therm_param
                     if (dat_head!="Cp"):
-                        therm_param[dat_head] = cls._vextract_(dat)
+                        therm_param[dat_head] = self._vextract_(dat)
                     elif (dat_head=="Cp" and flag_cp==False):
-                        therm_param[dat_head] = cls._vextract_(dat)
+                        therm_param[dat_head] = self._vextract_(dat)
                         flag_cp = True
                     if (dat_head == "P"):
                         cond_param["Pc"] = round(therm_param[dat_head][0] *1.0e-1, 4)
                         therm_param[dat_head] = [round(i*1.0e-1, 4) for i in therm_param[dat_head]]
                 elif(dat_head in rock_param): #line containing rock_param
-                    rock_param[dat_head] = cls._vextract_(dat)
+                    rock_param[dat_head] = self._vextract_(dat)
                 elif(dat_head in trans_param):
                     if (dat_head=="VISC"):
-                        trans_param[dat_head] = cls._vextract_(dat)
+                        trans_param[dat_head] = self._vextract_(dat)
                     elif(count_trans < 3):
-                        trans_param[dat_head] = cls._vextract_(dat)
+                        trans_param[dat_head] = self._vextract_(dat)
                         count_trans += 1
 #                elif(dat_head == "MOLE"):
 #                    flag = True

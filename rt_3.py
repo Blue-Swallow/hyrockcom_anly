@@ -15,6 +15,7 @@ import os
 import rt_1
 import rt_5
 
+
 class Main:
     def __init__(self, ex_df, func_cstr, func_gamma, input_param, plot=False):
         self.ex_df = ex_df
@@ -268,6 +269,8 @@ def func_Ve(of, Pc, eps, func_cstr, func_gamma):
     return(Ve)
 
 if __name__ == "__main__":
+#    import sys
+#    sys.path.append(os.getcwd())
     import RockCombstAnly
     inst = RockCombstAnly.Cui_input()
     db_of = RockCombstAnly.RT(inst).of
