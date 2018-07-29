@@ -11,56 +11,6 @@ from tqdm import tqdm
 cond_name = "cond.txt"
 
 
-def make_inp(path, option, of, Pc, oxid, fuel, h, elem, eps, n=""):
-    """
-    Write information in input file, "*.inp".
-    
-    Parameter
-    ---------
-    path : string
-        Path where folders containing "*.inp" are created 
-    option: string
-        Calculation option, wtheher using equilibrium composition or frozen composition.
-    of: float,
-        O/F
-    Pc: float,
-        Camberpressure, [MPa]
-    oxid: string,
-        Information about oxidizer
-    fuel: string
-        Information about fuel
-    h: float,
-        Standard enthalpy of formation [kJ/mol]
-    elem: string,
-        Information about element and the number of each element
-    eps: float,
-        Area ratio of nozzle throat & exit, Ae/At
-    n: int
-        polimerization number
-    """
-
-    if len(n) == 0:
-        fld_name = "inp"
-    else:
-        fld_name = os.path.join("inp", "n={}".fromat(n))
-        
-    if os.path.exists(os.path.join(path, fld_name)):
-        pass
-    else:
-        print("{},  {}".format(path, fld_name))
-        os.makedirs(os.path.join(path, fld_name))
-    num_round = int(2) #the number of decimal places in "Pc" & "of"
-#    inp_fname = "Pc_{:0^5}__of_{:0^5}.inp".format(round(Pc,num_round), round(of,num_round)) #.inp file name, e.g. "Pc=1.00_of=6.00.inp"
-    inp_fname = "Pc_{:0>5.2f}__of_{:0>5.2f}.inp".format(round(Pc,num_round), round(of,num_round)) #.inp file name, e.g. "Pc=1.00_of=6.00.inp"
-    file = open(path+"/"+fld_name+"/"+ inp_fname, "w")
-
-    Pc = Pc * 10    #Pc:Chamber pressure [bar]
-    prob = "case={} o/f={} rocket {} tcest,k=3800 p,bar={} sup,ae/at={}".format(inp_fname, round(of,4), option, round(Pc,4), round(eps,4))
-    fuel = fuel + " h,kj/mol={} {} ".format(h, elem)
-#    outp = "siunits short"
-    outp = "transport"
-    file.write("prob\n\t{}\nreact\n\t{}\n\t{}\noutput\t{}\nend\n".format(prob,oxid,fuel,outp))
-    file.close()
 
 
 class Cui_input():
@@ -294,6 +244,7 @@ class Cui_input():
         path = os.path.join(cadir, "cea_db", foldername)
         return(path)
 
+
     def gen_all(self):
         """
         Generate input file with respect to every condition
@@ -318,12 +269,12 @@ class Cui_input():
             
         """
         path = self._getpath_()
-#        oxid,fuel,dh,Pc,of,n,elem  = read_cond(path)
+    #        oxid,fuel,dh,Pc,of,n,elem  = read_cond(path)
         of = np.arange(self.of[0], self.of[1], self.of[2])
         Pc = np.arange(self.Pc[0], self.Pc[1], self.Pc[2])
         oxid = "oxid={} wt={} t,k={}".format(self.oxid, 100, self.o_itemp)
         fuel = "fuel={} wt={} t,k={}".format(self.fuel, 100, self.f_itemp)
-
+    
         elem_input = ""
         for i in self.f_elem:
             elem_input = elem_input+"{} {} ".format(i, self.f_elem[i])
@@ -331,7 +282,62 @@ class Cui_input():
             for j in range(np.size(of)):
                 make_inp(path, self.option, of[j], Pc[i], oxid, fuel, self.f_enthlpy, elem_input, self.eps)
         return(path)
+
+
+
+def make_inp(path, option, of, Pc, oxid, fuel, h, elem, eps, n=""):
+    """
+    Write information in input file, "*.inp".
     
+    Parameter
+    ---------
+    path : string
+        Path where folders containing "*.inp" are created 
+    option: string
+        Calculation option, wtheher using equilibrium composition or frozen composition.
+    of: float,
+        O/F
+    Pc: float,
+        Camberpressure, [MPa]
+    oxid: string,
+        Information about oxidizer
+    fuel: string
+        Information about fuel
+    h: float,
+        Standard enthalpy of formation [kJ/mol]
+    elem: string,
+        Information about element and the number of each element
+    eps: float,
+        Area ratio of nozzle throat & exit, Ae/At
+    n: int
+        polimerization number
+    """
+
+    if len(n) == 0:
+        fld_name = "inp"
+    else:
+        fld_name = os.path.join("inp", "n={}".fromat(n))
+        
+    if os.path.exists(os.path.join(path, fld_name)):
+        pass
+    else:
+        print("{},  {}".format(path, fld_name))
+        os.makedirs(os.path.join(path, fld_name))
+    num_round = int(2) #the number of decimal places in "Pc" & "of"
+#    inp_fname = "Pc_{:0^5}__of_{:0^5}.inp".format(round(Pc,num_round), round(of,num_round)) #.inp file name, e.g. "Pc=1.00_of=6.00.inp"
+    inp_fname = "Pc_{:0>5.2f}__of_{:0>5.2f}.inp".format(round(Pc,num_round), round(of,num_round)) #.inp file name, e.g. "Pc=1.00_of=6.00.inp"
+    file = open(path+"/"+fld_name+"/"+ inp_fname, "w")
+
+    Pc = Pc * 10    #Pc:Chamber pressure [bar]
+    prob = "case={} o/f={} rocket {} tcest,k=3800 p,bar={} sup,ae/at={}".format(inp_fname, round(of,4), option, round(Pc,4), round(eps,4))
+    fuel = fuel + " h,kj/mol={} {} ".format(h, elem)
+#    outp = "siunits short"
+    outp = "transport"
+    file.write("prob\n\t{}\nreact\n\t{}\n\t{}\noutput\t{}\nend\n".format(prob,oxid,fuel,outp))
+    file.close()
+
+
+
 if __name__ == "__main__":
 #    path = _getpath_()
 #    test = gen_all(path)

@@ -592,9 +592,3 @@ if __name__ == "__main__":
     inst = CEA_execute()
     of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
 
-#    dbfld_path = os.path.join("GOX_CurableResin_new", "csv_database")
-#    inst2 = Read_datset(dbfld_path)
-#    func = inst2.gen_func("CSTAR", extraporate="linear")
-#    func(100, 1.0e+6)
-#    of_range = np.arange(0.01, 100, 0.1)
-#    plt.plot(of_range, np.array([func(of, 1.0e+6) for of in of_range]))

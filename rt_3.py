@@ -12,7 +12,6 @@ from scipy import integrate
 from scipy import optimize
 from tqdm import tqdm
 import os
-import rt_1
 import rt_5
 
 
