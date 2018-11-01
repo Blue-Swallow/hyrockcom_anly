@@ -173,7 +173,7 @@ class Cui_input():
                 if os.path.exists(file_path):
                     self.ex_df = pd.read_csv(file_path,header=1, index_col=0)
                     self.ex_df.mox = self.ex_df.mox * 1.0e-3 #convert [g/s] to [kg/s]
-                    self.ex_df.Pc = self.ex_df.Pc * 1.0e+6 + 0.1013 #convert [MPaG] to [Pa]
+                    self.ex_df.Pc = self.ex_df.Pc * 1.0e+6 + 0.1013e+6 #convert [MPaG] to [Pa]
                     break
                 else: # create template file
                     print("\nThere is no such a experiment data\n{}".format(file_path))
