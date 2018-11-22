@@ -12,6 +12,7 @@ import re, copy
 import tqdm
 from subprocess import*
 import warnings
+import time
 
 
 class CEA_execute:
@@ -100,25 +101,29 @@ class CEA_execute:
                 df = pd.DataFrame(val_dict[i], index=of, columns=Pc)
                 df.to_csv(os.path.join(dbfld_path, i)+"_"+point+".csv")
 
-    def single_exe(self, inp_fname):
+    def single_exe(self, cea_dirpath, inp_fname):
         """
         One-time CEA execution
         
         Parameter
         --------
+        cea_dirpath: string
+            CEA directory path
         inp_fname : string
             Input file name with out ".inp" extension \n
             It is required to put ".inp" file in the same directory with "FCEA2.exe"
         """
         #cea_fname : Name and case of CEA input-file & output-file
-        cea_path = os.path.join("cea", "FCEA2.exe")
-        command = inp_fname + "\n"
+        os.chdir("cea")
+        cea_path = os.path.join(cea_dirpath, "FCEA2.exe")
+        command = os.path.join(cea_dirpath,inp_fname) + "\n"
         p = Popen(cea_path, stdin=PIPE, stdout=PIPE)
-        p.stdin.write(bytes(command,"utf-8"))
-        p.stdin.flush()
+        p.communicate(input=bytes(command,"utf-8"))
+#        time.sleep(0.1)
         p.wait()
+        os.chdir("..")
         return
-        
+
        
     def all_exe(self):
         """
@@ -131,14 +136,15 @@ class CEA_execute:
             rocket_param: dict, Rocket parameters
         """
         cadir, inpfld_path, outfld_path, dbfld_path = self._getpath_()
+        cea_dirpath = os.path.join(cadir, "cea")
         split =  lambda r: os.path.splitext(r)[0] # get file name without extention
         inp_list = [os.path.basename(split(r))  for r in glob.glob(inpfld_path + "/*.inp")]
           
                
         for i, fname in enumerate(tqdm.tqdm(inp_list)):
             shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"cea","tmp.inp"))
-            self.single_exe("tmp")
-            shutil.copy(os.path.join(cadir, "cea", "tmp.out"), os.path.join(outfld_path, fname+".out"))
+            self.single_exe(cea_dirpath, "tmp")
+            shutil.copy(os.path.join(cea_dirpath, "tmp.out"), os.path.join(outfld_path, fname+".out"))
             cond, therm, trans, rock = Read_output("cea").read_out("tmp")
             
             therm.update(trans) #combine dict "therm" and dict "trans"

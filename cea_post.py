@@ -7,12 +7,7 @@ import numpy as np
 from scipy import interpolate
 import pandas as pd
 import matplotlib.pyplot as plt
-import os, sys, glob, shutil
-import re, copy
-import tqdm
-from subprocess import*
-import warnings
-from cea_exe import CEA_execute
+import os, sys, glob
 
 
 class Read_datset:
