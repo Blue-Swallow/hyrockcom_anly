@@ -134,7 +134,7 @@ class Main:
             try:
                 tmp = optimize.newton(self.func_error_eq9,  self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
             except:
-                tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, 300, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, 1000, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
             self.of = np.append(self.of, tmp)
             j +=1
         self.anl_df["of"] = self.of
