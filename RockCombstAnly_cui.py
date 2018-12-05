@@ -6,6 +6,7 @@ Created on Sat Apr 14 13:40:16 2018
 """
 
 import os, sys
+import json
 import numpy as np
 import pandas as pd
 import cea_exe
@@ -134,12 +135,17 @@ class Cui_input():
 #        self._inp_lang_()
         self._get_expath_()
         self.input_param = dict()
-        self._select_mode_()
-        self._input_nozzle_()
-        self._input_eps_()
-        self._input_consump_()
+        flag, cond_dict = self._select_cond_()
+        if flag:
+            self.input_param = cond_dict
+        else:
+            self._select_mode_()
+            self._input_nozzle_()
+            self._input_eps_()
+            self._input_consump_()
         self._get_ceapath_()
         self.cea_db = cea_post.Read_datset(self.cea_path)
+        self._cond_out_()
 
     def _inp_lang_(self):
         """
@@ -187,7 +193,41 @@ class Cui_input():
                         sys.exit()
             else:
                 print("There is no such a Folder\n{}".format(self.ex_path))           
-               
+    
+    def _select_cond_(self):
+        """
+        Select whether using values contained in "cond.json" file
+        
+        Return
+        -------
+        flag: bool
+            True: using the values
+            False: don't use the values
+        cond_dict: dict
+            dictionary wihch contains the condition values
+        """
+        cond_dict = dict([])
+        cond_path = os.path.join(self.ex_path, "cond.json")
+        if os.path.exists(cond_path):
+            cond_json = open(cond_path, "r")
+            cond_dict = json.load(cond_json)
+            while(True):
+                print("\nDo you want to use following values contained in \"cond.json\"?")
+                print(cond_dict)
+                char = input("\n  y/n ?\n>>")
+                if char == "y":
+                    flag = True
+                    break
+                elif char == "n":
+                    flag = False
+                    break
+                else:
+                    pass
+        else:
+            flag = False
+        return(flag, cond_dict)
+            
+           
     def _select_mode_(self):
         """
         Select a calculation mode; RT-1,2,3,4,5,...
@@ -255,12 +295,19 @@ class Cui_input():
                     break
                 elif flag == "n":
                     pass
+                
+    def _cond_out_(self):
+        """
+        Output the input value as condition file: "cond.json"
+        """
+        output_fname = open(os.path.join(self.ex_path, "cond.json"), "w")
+        json.dump(self.input_param, output_fname)
 
 
 if __name__ == "__main__":
     inst = Cui_input()
-    df = RT(inst).call_rt()
-    df.to_csv(os.path.join(inst.ex_path, "result.csv"))
+#    df = RT(inst).call_rt()
+#    df.to_csv(os.path.join(inst.ex_path, "result.csv"))
     
 
     
