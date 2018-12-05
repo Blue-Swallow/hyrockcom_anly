@@ -306,8 +306,8 @@ class Cui_input():
 
 if __name__ == "__main__":
     inst = Cui_input()
-#    df = RT(inst).call_rt()
-#    df.to_csv(os.path.join(inst.ex_path, "result.csv"))
+    df = RT(inst).call_rt()
+    df.to_csv(os.path.join(inst.ex_path, "result.csv"))
     
 
     

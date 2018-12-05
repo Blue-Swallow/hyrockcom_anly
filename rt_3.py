@@ -131,10 +131,15 @@ class Main:
         Ae = np.power(self.input_param["Dt"], 2)*np.pi/4 * eps
         self.of_init = self.of_init.where(self.of_init>0, other=1.0e-2)
         for i in tqdm(self.ex_df.index):
+            of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
             try:
                 tmp = optimize.newton(self.func_error_eq9,  self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
             except:
-                tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, 1000, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                try:
+                    tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, of_bound_max, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                except ValueError:
+                    # if O/F exceeds of_bound_max and stop at optimization, maximum value of O/F boundary is assined as O/F
+                    tmp = of_bound_max
             self.of = np.append(self.of, tmp)
             j +=1
         self.anl_df["of"] = self.of
@@ -270,14 +275,14 @@ def func_Ve(of, Pc, eps, func_cstr, func_gamma):
 if __name__ == "__main__":
 #    import sys
 #    sys.path.append(os.getcwd())
-    import RockCombstAnly
-    inst = RockCombstAnly.Cui_input()
-    db_of = RockCombstAnly.RT(inst).of
-    db_Pc = RockCombstAnly.RT(inst).Pc
-    ex_df = RockCombstAnly.RT(inst).ex_df
-    func_cstr = RockCombstAnly.RT(inst).cstr
-    func_gamma = RockCombstAnly.RT(inst).gamma
-    input_param = RockCombstAnly.RT(inst).input_param
+    import RockCombstAnly_cui
+    inst = RockCombstAnly_cui.Cui_input()
+    db_of = RockCombstAnly_cui.RT(inst).of
+    db_Pc = RockCombstAnly_cui.RT(inst).Pc
+    ex_df = RockCombstAnly_cui.RT(inst).ex_df
+    func_cstr = RockCombstAnly_cui.RT(inst).cstr
+    func_gamma = RockCombstAnly_cui.RT(inst).gamma
+    input_param = RockCombstAnly_cui.RT(inst).input_param
     
     result = Main(ex_df, func_cstr, func_gamma, input_param)
     df = result.execute_RT()

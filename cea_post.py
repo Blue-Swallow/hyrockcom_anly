@@ -132,6 +132,18 @@ class Read_datset:
             """
             Pc = Pc*1.0e-6
             cstr_array = func_interp(self.of, Pc)
+            def cea_exe(of, Pc):
+                """ Using single execute of CEA instead of not using extraporation 
+                
+                Parameter
+                --------
+                of: float
+                    O/F
+                Pc: float
+                    chamber pressure [MPa]
+                """
+                pass
+            
             def extrapfunc_exp(of, a, b,diff, ddiff):
                 theta = ddiff/diff
                 p = np.log(diff/theta)/theta + a
@@ -173,7 +185,9 @@ class Read_datset:
 #                dddiff_begin = 
                 a = self.of.min()
                 b = cstr_array[0]
-                if extraporate=="exp":
+                if extraporate == False:
+                    val = cea_exe(of, Pc)
+                elif extraporate=="exp":
                     val = extrapfunc_exp(of, a, b, diff_begin, ddiff_begin)
                 elif extraporate=="exp2":
                     val = extrapfunc_exp2(of, a, b, diff_begin, ddiff_begin)
@@ -191,7 +205,9 @@ class Read_datset:
 #                dddiff_end = 
                 a = self.of.max()
                 b = cstr_array[len(cstr_array)-1]
-                if extraporate=="exp":
+                if extraporate == False:
+                    val = cea_exe(of, Pc)
+                elif extraporate=="exp":
                     val = extrapfunc_exp(of, a, b, diff_end, ddiff_end)
                 elif extraporate=="exp2":
                     val = extrapfunc_exp2(of, a, b, diff_end, ddiff_end)
