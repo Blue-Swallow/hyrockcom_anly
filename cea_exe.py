@@ -4,16 +4,15 @@ Execute CEA calculation
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import os, sys, glob, shutil
-import numpy as np
 from scipy import interpolate
 import pandas as pd
-import collections
+import matplotlib.pyplot as plt
+import os, sys, glob, shutil
 import re, copy
 import tqdm
 from subprocess import*
 import warnings
+import time
 
 
 class CEA_execute:
@@ -47,19 +46,20 @@ class CEA_execute:
         
         cadir = os.path.dirname(os.path.abspath(__file__))
         if self.fld_path is None:
-            self.fld_path = cadir + "/" + input("Input Folder Name (e.g. \"O2+PMMA\")\n>>")
+            input_path = input("Input Folder Name (e.g. \"O2+PMMA\")\n>>")
+            self.fld_path = os.path.join(cadir, "cea_db", input_path)
 #        print("Input Polymerization Number. If you did't assign it, please input \"n\" \n(Directory structure is like \"O2+PMMA/n=100\")")
 #        num = input()
         num = "n"
         if num=="n":
 #            global outfld_path
-            inpfld_path = self.fld_path + "/inp"
-            outfld_path = self.fld_path + "/out"
-            dbfld_path = self.fld_path + "/csv_database"
+            inpfld_path = os.path.join(self.fld_path, "inp")
+            outfld_path = os.path.join(self.fld_path, "out")
+            dbfld_path = os.path.join(self.fld_path, "csv_database")
         else:
-            inpfld_path = self.fld_path + "/inp_n={}".format(num)
-            outfld_path = self.fld_path + "/out_n={}".format(num)
-            dbfld_path = self.fld_path + "/csv_database_n={}".format(num)
+            inpfld_path = os.path.join(self.fld_path, "inp_n={}".format(num))
+            outfld_path = os.path.join(self.fld_path, "out_n={}".format(num))
+            dbfld_path = os.path.join(self.fld_path + "csv_database_n={}".format(num))
         if os.path.exists(inpfld_path):
             if os.path.exists(outfld_path):
                 pass
@@ -101,25 +101,34 @@ class CEA_execute:
                 df = pd.DataFrame(val_dict[i], index=of, columns=Pc)
                 df.to_csv(os.path.join(dbfld_path, i)+"_"+point+".csv")
 
-    def single_exe(self, inp_fname):
+    def single_exe(self, cea_dirpath, inp_fname):
         """
         One-time CEA execution
         
         Parameter
         --------
+        cea_dirpath: string
+            CEA directory path
         inp_fname : string
             Input file name with out ".inp" extension \n
             It is required to put ".inp" file in the same directory with "FCEA2.exe"
         """
         #cea_fname : Name and case of CEA input-file & output-file
-        cea_path = "FCEA2.exe"
-        command = inp_fname + "\n"
+        os.chdir("cea")
+        cea_path = os.path.join(cea_dirpath, "FCEA2.exe")
+        command = os.path.join(cea_dirpath,inp_fname) + "\n"
         p = Popen(cea_path, stdin=PIPE, stdout=PIPE)
-        p.stdin.write(bytes(command,"utf-8"))
-        p.stdin.flush()
+        p.communicate(input=bytes(command,"utf-8"))
+#        time.sleep(0.1)
         p.wait()
+        os.chdir("..")
         return
-        
+
+    def onetime_exe(self):
+        """
+        Execute CEA in onetime; preparing ".inp", execute CEA and read ".out" file
+        """
+        pass
        
     def all_exe(self):
         """
@@ -132,15 +141,16 @@ class CEA_execute:
             rocket_param: dict, Rocket parameters
         """
         cadir, inpfld_path, outfld_path, dbfld_path = self._getpath_()
+        cea_dirpath = os.path.join(cadir, "cea")
         split =  lambda r: os.path.splitext(r)[0] # get file name without extention
         inp_list = [os.path.basename(split(r))  for r in glob.glob(inpfld_path + "/*.inp")]
           
                
         for i, fname in enumerate(tqdm.tqdm(inp_list)):
-            shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"tmp.inp"))
-            self.single_exe("tmp")
-            shutil.copy(os.path.join(cadir,"tmp.out"), os.path.join(outfld_path, fname+".out"))
-            cond, therm, trans, rock = Read_output.read_out("tmp")
+            shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"cea","tmp.inp"))
+            self.single_exe(cea_dirpath, "tmp")
+            shutil.copy(os.path.join(cea_dirpath, "tmp.out"), os.path.join(outfld_path, fname+".out"))
+            cond, therm, trans, rock = Read_output("cea").read_out("tmp")
             
             therm.update(trans) #combine dict "therm" and dict "trans"
 
@@ -197,7 +207,18 @@ class CEA_execute:
             
         return(of, Pc, value_c, value_t, value_e, value_rock)
 
+
 class Read_output:
+    """ Read contens in one ".out" file
+    
+    Parameter
+    ---------
+    fld_path: string
+        folder path which contains .out file
+    """
+    
+    def __init__(self, fld_path):
+        self.fld_path = fld_path
     """
     Class to read ".out" file
     """
@@ -206,8 +227,7 @@ class Read_output:
     rock_param  = ["CSTAR", "CF", "Ivac", "Isp"]
     trans_param = ["VISC", "CONDUCTIVITY", "PRANDTL"]
     
-    @classmethod
-    def _vextract_(cls, str_list):
+    def _vextract_(self, str_list):
         """
         Extract calculated value from splitted data-list containing raw-data string
         """
@@ -228,14 +248,14 @@ class Read_output:
         return(val_list)
                 
     
-    @classmethod
-    def read_out(cls, cea_fname):
+    def read_out(self, cea_fname):
         """
         Read a ".out" file
         
         Parameters
         ----------
-        cea_fname: sting, path of ".out" file without .out extent.
+        cea_fname: sting
+            file name of ".out" file with out ".out" extension.
         
         Return
         ------
@@ -262,26 +282,26 @@ class Read_output:
                 t: float, a value at the throat
                 e: float, a value at the end of nozzle               
         """
-        out_fname = cea_fname + ".out"
-        file = open(out_fname,"r")
+        out_fpath = os.path.join(self.fld_path, cea_fname + ".out")
+        file = open(out_fpath,"r")
         
 #        cond_param = ["O/F", "Pc", "PHI"]
-        cond_param = cls.cond_param
+        cond_param = self.cond_param
         emp_list = ["" for i in range(len(cond_param))]
         cond_param = dict(zip(cond_param, emp_list))
         
 #        therm_param = ["P", "T", "RHO", "H", "U", "G", "S", "M", "Cp", "GAMMAs", "SON", "MACH"]
-        therm_param = cls.therm_param
+        therm_param = self.therm_param
         emp_list = ["" for i in range(len(therm_param))]
         therm_param = dict(zip(therm_param, emp_list))
         
 #        rock_param  = ["Ae/At", "CSTAR", "CF", "Ivac", "Isp"]
-        rock_param = cls.rock_param
+        rock_param = self.rock_param
         emp_list = ["" for i in range(len(rock_param))]
         rock_param = dict(zip(rock_param, emp_list))
         
 #        rock_param  = ["Ae/At", "CSTAR", "CF", "Ivac", "Isp"]
-        trans_param = cls.trans_param
+        trans_param = self.trans_param
         emp_list = ["" for i in range(len(trans_param))]
         trans_param = dict(zip(trans_param, emp_list))
     
@@ -299,25 +319,25 @@ class Read_output:
             else: # not-empty line
                 dat_head = dat[0].split(",")[0]
                 if(dat_head in cond_param and len(dat)>3):
-                    tmp = cls._vextract_(dat)
+                    tmp = self._vextract_(dat)
                     cond_param["O/F"] = tmp[0]
                     cond_param["PHI"] = tmp[3]
                 elif(dat_head in therm_param): #line containing therm_param
                     if (dat_head!="Cp"):
-                        therm_param[dat_head] = cls._vextract_(dat)
+                        therm_param[dat_head] = self._vextract_(dat)
                     elif (dat_head=="Cp" and flag_cp==False):
-                        therm_param[dat_head] = cls._vextract_(dat)
+                        therm_param[dat_head] = self._vextract_(dat)
                         flag_cp = True
                     if (dat_head == "P"):
                         cond_param["Pc"] = round(therm_param[dat_head][0] *1.0e-1, 4)
                         therm_param[dat_head] = [round(i*1.0e-1, 4) for i in therm_param[dat_head]]
                 elif(dat_head in rock_param): #line containing rock_param
-                    rock_param[dat_head] = cls._vextract_(dat)
+                    rock_param[dat_head] = self._vextract_(dat)
                 elif(dat_head in trans_param):
                     if (dat_head=="VISC"):
-                        trans_param[dat_head] = cls._vextract_(dat)
+                        trans_param[dat_head] = self._vextract_(dat)
                     elif(count_trans < 3):
-                        trans_param[dat_head] = cls._vextract_(dat)
+                        trans_param[dat_head] = self._vextract_(dat)
                         count_trans += 1
 #                elif(dat_head == "MOLE"):
 #                    flag = True
@@ -348,245 +368,7 @@ class Read_output:
         return(cond_param, therm_param, trans_param, rock_param)
 
 
-
-class Read_datset:
-    """
-    Read_datset(fld_path, fexten="csv")
-    
-    Class to read and interpolate datasets calculated parameter with respect to every O/F and Pc
-    
-    Parameter
-    ---------
-    self.fld_path: string
-        folder path containing dataset files
-
-    self.fexten: string
-        Defalut-value = "csv".
-        Extension of dataset file. Default is CSV file.
-
-    Class variable
-    --------
-    self.of: ndarray
-        oxidizer to fuel ratio
-    
-    self.Pc: ndarray
-        chamber pressure [MPa]
-
-    """
-    
-    def __init__(self, fld_path, fexten="csv"):
-        self.fld_path = fld_path
-        self.fexten = fexten
-        if os.path.exists(self.fld_path):
-            flist = self.get_flist()
-#            print(flist)
-            init_fpath = os.path.join(self.fld_path, flist[0] +"."+self.fexten)
-            dataframe = pd.read_csv(init_fpath, header=0, index_col=0, comment="#")
-            self.of = np.asarray([float(i) for i in dataframe.index])
-            self.Pc = np.asarray([float(i) for i in dataframe.columns])
-        else:
-            print("There is no such a dataset file/n{}".format(self.fld_path))
-    
-    def _read_csv_(self, param_name):
-        """
-        Read a csv-type-dataset files
-        
-        Parameter
-        ---------
-        param_name: string
-            Parameter name which is a dataset file name \n
-            e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
-        
-        Return
-        ------
-        array: 2-ndarray, array.shape -> (of.size(), Pc.size())
-            values of a calculated parameter with respect to every O/F and Pc
-        """
-        fpath = os.path.join(self.fld_path, param_name+"."+self.fexten)
-        
-        if os.path.exists(fpath):
-            dataframe = pd.read_csv(fpath, header=0, index_col=0, comment="#")
-            array = np.asarray(dataframe)
-        else:
-            print("There is no such a parameter \"{}\"\n".format(param_name))
-            print("Please select a parameter from below list\n")
-            print(self.get_flist())
-            sys.exit(1)
-        return(array)
-
-    def get_flist(self):
-        """
-        Get dataset files list
-        
-        Return
-        -------
-        file_list: list
-            list of csv files
-        """
-        split =  lambda r: os.path.splitext(r)[0] # get file name without extention
-        file_list = [os.path.basename(split(r))  for r in glob.glob(self.fld_path + "/*.{}".format(self.fexten))]
-        return(file_list)
-
-    def gen_func(self, param_name, extraporate="linear"):
-        """
-        Generate function of calculated parameter with respect to O/F and Pc.
-        Return a value after reading csv file and interpolate the data.
-        
-        Parameter
-        ---------
-        param_name: string
-            Parameter name which is a dataset file name \n
-            e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
-        
-        extraporate: string; optional
-            "exp": using f(x)=theta*numpy.exp(x-p)+q to extraporate the region out of database
-            "exp2"
-            "ln"
-            "inverse"
-            "power"
-            "linear" Default; using linear function to extraporate
-
-        Return
-        ------
-        func: function(of, Pc)
-            A function which return a interpolated value (array-like)
-        """
-        array = self._read_csv_(param_name)
-        func_interp = interpolate.interp2d(self.of, self.Pc, array.T, kind="cubic", bounds_error=False)
-        def func(of, Pc):
-            """Function to do interpolation and linear-extrapolation about the assigned database.
-            Extrapolation is avalable only when assigned O/F is out of data-base range
-            
-            Parameter
-            -----------
-            of: float,
-                O/F
-            Pc: float,
-                Chamber Pressure [Pa]
-            
-            Return
-            ----------
-            val: float
-                interpolated or extrapolated value
-            """
-            Pc = Pc*1.0e-6
-            cstr_array = func_interp(self.of, Pc)
-            def extrapfunc_exp(of, a, b,diff, ddiff):
-                theta = ddiff/diff
-                p = np.log(diff/theta)/theta + a
-                q = b - np.exp(theta*(a-p))
-                val = np.exp(theta*(a-p))+q
-                return(val)
-            def extrapfunc_exp2(of, a,b, diff, ddiff):
-                p = a - ddiff/diff
-                theta = np.power(diff,2)/(ddiff*np.exp(ddiff/diff))
-                q = b - theta*np.exp(a-p)
-                val = theta*np.exp(a-p) + q
-                return(val)
-            def extrapfunc_ln(of, a,b, diff, ddiff):
-                p = diff/ddiff + a
-                theta = -np.power(diff, 2.0)/ddiff
-                q = b - theta*np.log(a-p)
-                val = theta*np.log(of - p) + q
-                return(val)
-            def extrapfunc_inverse(of, a,b, diff, ddiff):
-                p = 2*diff/ddiff + a
-                theta = -diff*np.power(a-p, 2.0)
-                q = b - theta/(a-p)
-                val = theta/(of-p) + q
-                return(val)
-            def extrapfunc_power(of, a, b, diff, ddiff, dddiff):
-                phi = (dddiff*diff-2*np.power(ddiff,2))/(dddiff*diff-np.power(ddiff,2))
-                p = a - (phi-1)*diff/ddiff
-                theta = diff/(phi*np.power(a-p,phi-1))
-                q = b - theta*np.power(a-p,phi)
-                val = theta*np.power(of-p,phi)+q
-                return(val)
-            def extrapfunc_linear(of, a, b, diff):
-                val= diff*(of-a) + b
-                return(val)
-            
-            if of<self.of.min(): #when assigned O/F is smaller than minimum O/F of database
-                diff_begin = (-3*cstr_array[0] +4*cstr_array[1] -cstr_array[2])/(2*(self.of[1]-self.of[0]))
-                ddiff_begin = (2*cstr_array[0] -5*cstr_array[1] + 4*cstr_array[2] -cstr_array[3])/np.power((self.of[1]-self.of[0]),2.0)
-#                dddiff_begin = 
-                a = self.of.min()
-                b = cstr_array[0]
-                if extraporate=="exp":
-                    val = extrapfunc_exp(of, a, b, diff_begin, ddiff_begin)
-                elif extraporate=="exp2":
-                    val = extrapfunc_exp2(of, a, b, diff_begin, ddiff_begin)
-                elif extraporate=="ln":
-                    val = extrapfunc_ln(of, a, b, diff_begin, ddiff_begin)
-                elif extraporate=="inverse":
-                    val = extrapfunc_inverse(of, a, b, diff_begin, ddiff_begin)
-                elif extrapfunc_power=="power":
-                    val = extrapfunc_power(of, a, b, diff_begin, ddiff_begin, dddiff_begin)
-                elif extraporate=="linear":
-                    val = extrapfunc_linear(of, a, b, diff_begin)
-            elif self.of.max()<of: #when assigned O/F is larger than maximum O/F of database
-                diff_end = (cstr_array[len(cstr_array)-3] -4* cstr_array[len(cstr_array)-2] +3*cstr_array[len(cstr_array)-1])/(2*(self.of[len(self.of)-1]-self.of[len(self.of)-2]))
-                ddiff_end = (-2*cstr_array[len(cstr_array)-4] +4*cstr_array[len(cstr_array)-3] -5*cstr_array[len(cstr_array)-2] +2*cstr_array[len(cstr_array)-1])/np.power(self.of[len(self.of)-1]-self.of[len(self.of)-2], 2.0)
-#                dddiff_end = 
-                a = self.of.max()
-                b = cstr_array[len(cstr_array)-1]
-                if extraporate=="exp":
-                    val = extrapfunc_exp(of, a, b, diff_end, ddiff_end)
-                elif extraporate=="exp2":
-                    val = extrapfunc_exp2(of, a, b, diff_end, ddiff_end)
-                elif extraporate=="ln":
-                    val = extrapfunc_ln(of, a, b, diff_end, ddiff_end)
-                elif extraporate=="inverse":
-                    val = extrapfunc_inverse(of, a, b, diff_end, ddiff_end)
-                elif extrapfunc_power=="power":
-                    val = extrapfunc_power(of, a, b, diff_end, ddiff_end, dddiff_end)
-                elif extraporate=="linear":
-                    val = extrapfunc_linear(of, a, b, diff_end)
-            else: #when assigned O/F is with in the range of O/F
-                    val = func_interp(of, Pc)[0]
-            return(val)
-        
-        return(func)
-        
-    def plot(self, param_name, pickup_num):    
-        """
-        Plot graph about relationship of param to of and Pc
-        
-        Parameters
-        ----------
-        param_name: string
-            Parameter name which is a dataset file name \n
-            e.g. "CSTAR", "GAMMAs", "T_c", "Cp_c"
-
-        pickup_num: int
-            The number of "Pc" picked up to draw a graph 
-        """
-        if pickup_num > len(self.Pc):
-            pass
-        else:
-            Pc_nlm = (self.Pc[-1]-self.Pc[0])/(pickup_num-1)
-            pick_idx = lambda i: np.abs(np.asarray(self.Pc)-(Pc_nlm*i + self.Pc[0])).argmin()
-            idx = [pick_idx(i) for i in range(pickup_num)]
-
-        array = self._read_csv_(param_name)        
-        plt.rcParams["font.family"] = "Times New Roman"
-        plt.rcParams["font.size"] = 17
-        fig = plt.figure(figsize=(8,6))
-        ax = fig.add_subplot(111)
-        for i in idx:
-            ax.plot(self.of, array[:,i], label=r"$P_c$ = {} MPa".format(self.Pc[i]))
-        ax.legend(loc="best", fontsize=16)
-        ax.set_xlabel(r"$O/F$")
-        ax.set_ylabel("${}$".format(param_name))
-
-
 if __name__ == "__main__":
     inst = CEA_execute()
     of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
 
-#    dbfld_path = os.path.join("GOX_CurableResin_new", "csv_database")
-#    inst2 = Read_datset(dbfld_path)
-#    func = inst2.gen_func("CSTAR", extraporate="linear")
-#    func(100, 1.0e+6)
-#    of_range = np.arange(0.01, 100, 0.1)
-#    plt.plot(of_range, np.array([func(of, 1.0e+6) for of in of_range]))
