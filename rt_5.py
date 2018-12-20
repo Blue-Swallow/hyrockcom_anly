@@ -160,13 +160,18 @@ class Main:
         print("{}".format(self.counter_eta_iterat)+ string + " iteration")
         print("eta = {}".format(eta))
         for i in tqdm(self.ex_df.index):
+            of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
             of_init = self.of_init.where(self.of_init>0, other=1.0e-2)
             try:
                 tmp = optimize.newton(self.func_error_eq14, of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
 #            tmp = optimize.newton(self.func_error_eq14, of_init[i], tol=1.0e-5, args=(i, eta))
             except:
-#                print("Using scipy.optimize.brentq method insted of newton")
-                tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, self.of_init.max(), maxiter=100, xtol=1.0e-5, args=(i, eta))                
+                try:
+#                    print("Using scipy.optimize.brentq method insted of newton")
+#                    tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, self.of_init.max(), maxiter=100, xtol=1.0e-5, args=(i, eta))
+                    tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, of_bound_max, maxiter=100, xtol=1.0e-5, args=(i, eta))
+                except ValueError:
+                    tmp = of_bound_max
             of = np.append(of, tmp)
             j +=1
         self.anl_df["of"] = of
