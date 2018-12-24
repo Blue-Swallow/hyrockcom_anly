@@ -6,6 +6,7 @@ Created on Sat Apr 14 13:40:16 2018
 """
 
 import os, sys
+import copy
 import json
 import numpy as np
 import pandas as pd
@@ -78,13 +79,13 @@ class RT():
                 dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
                 print("\nNow analyzing fuel mass consumption error...")
                 delta_Mf = self.input_param["Mf"]*1.1
-                input_param_Mf = self.input_param
+                input_param_Mf = copy.deepcopy(self.input_param)
                 input_param_Mf["Mf"] = delta_Mf
                 anl_df_Mf = rt_1.Main(self.ex_df, input_param_Mf)
                 dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - self.input_param["Mf"])
                 print("\nNow analyzing nozzle throat diameter error...")
                 delta_Dt = self.input_param["Dt"]*1.1
-                input_param_Dt = self.input_param
+                input_param_Dt = copy.deepcopy(self.input_param)
                 input_param_Dt["Dt"] = delta_Dt
                 anl_df_Dt = rt_3.Main(self.ex_df, input_param_Dt)
                 dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - self.input_param["Dt"])
@@ -97,7 +98,7 @@ class RT():
                 anl_df["dof"] = dof
                 of_tmp = anl_df.of + dof
                 mf_tmp = anl_df.mox/of_tmp
-                anl_df["dmf"] = mf_tmp - anl_df["mf"]
+                anl_df["dmf"] = np.abs(mf_tmp - anl_df["mf"])
 
 #        if self.input_param["mode"] == 2:
 #            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
@@ -118,13 +119,13 @@ class RT():
                 dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
                 print("\nNow analyzing fuel mass consumption error...")
                 delta_Mf = self.input_param["Mf"]*1.1
-                input_param_Mf = self.input_param
+                input_param_Mf = copy.deepcopy(self.input_param)
                 input_param_Mf["Mf"] = delta_Mf
                 anl_df_Mf = rt_3.Main(self.ex_df, self.cstr, self.gamma, input_param_Mf).execute_RT()
                 dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - self.input_param["Mf"])
                 print("\nNow analyzing nozzle throat diameter error...")
                 delta_Dt = self.input_param["Dt"]*1.1
-                input_param_Dt = self.input_param
+                input_param_Dt = copy.deepcopy(self.input_param)
                 input_param_Dt["Dt"] = delta_Dt
                 anl_df_Dt = rt_3.Main(self.ex_df, self.cstr, self.gamma, input_param_Dt).execute_RT()
                 dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - self.input_param["Dt"])
@@ -138,7 +139,7 @@ class RT():
                 anl_df["dof"] = dof
                 of_tmp = anl_df.of + dof
                 mf_tmp = anl_df.mox/of_tmp
-                anl_df["dmf"] = mf_tmp - anl_df["mf"]
+                anl_df["dmf"] = np.abs(mf_tmp - anl_df["mf"])
 #        if self.input_param["mode"] == 4:
 #            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 5:
@@ -158,13 +159,13 @@ class RT():
                 dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
                 print("\nNow analyzing fuel mass consumption error...")
                 delta_Mf = self.input_param["Mf"]*1.1
-                input_param_Mf = self.input_param
+                input_param_Mf = copy.deepcopy(self.input_param)
                 input_param_Mf["Mf"] = delta_Mf
                 anl_df_Mf = rt_5.Main(self.ex_df, self.cstr, self.gamma, input_param_Mf).execute_RT()
                 dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - self.input_param["Mf"])
                 print("\nNow analyzing nozzle throat diameter error...")
                 delta_Dt = self.input_param["Dt"]*1.1
-                input_param_Dt = self.input_param
+                input_param_Dt = copy.deepcopy(self.input_param)
                 input_param_Dt["Dt"] = delta_Dt
                 anl_df_Dt = rt_5.Main(self.ex_df, self.cstr, self.gamma, input_param_Dt).execute_RT()
                 dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - self.input_param["Dt"])
@@ -178,7 +179,7 @@ class RT():
                 anl_df["dof"] = dof
                 of_tmp = anl_df.of + dof
                 mf_tmp = anl_df.mox/of_tmp
-                anl_df["dmf"] = mf_tmp - anl_df["mf"]
+                anl_df["dmf"] = np.abs(mf_tmp - anl_df["mf"])
                 
         self.anl_df = anl_df
         return(self.anl_df)
@@ -364,7 +365,7 @@ class Cui_input():
         """
         while(True):
             print("\nDo you want to execute error analisys?")
-            char = input("\n  y/n ?\n>>")
+            char = input("  y/n ?\n>>")
             if char == "y":
                 flag = True
                 self.input_param["mode_error"] = "y"
