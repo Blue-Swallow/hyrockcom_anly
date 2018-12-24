@@ -117,6 +117,12 @@ class RT():
                 ex_df_mox.mox = delta_mox
                 anl_df_dmox = rt_3.Main(ex_df_mox, self.cstr, self.gamma, self.input_param).execute_RT()
                 dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
+                print("\nNow analyzing thrust error...")
+                delta_F = self.ex_df.F*1.1
+                ex_df_F = self.ex_df.copy()
+                ex_df_F.F = delta_F
+                anl_df_dF = rt_3.Main(ex_df_F, self.cstr, self.gamma, self.input_param).execute_RT()
+                dof_dF = (anl_df_dF.of - anl_df.of)/(delta_F - self.ex_df.F)
                 print("\nNow analyzing fuel mass consumption error...")
                 delta_Mf = self.input_param["Mf"]*1.1
                 input_param_Mf = copy.deepcopy(self.input_param)
@@ -132,9 +138,10 @@ class RT():
                 
                 dPc = self.input_param["dPc"]
                 dmox = self.input_param["dmox"]
+                dF = self.input_param["dF"]
                 dMf = self.input_param["dMf"]
                 dDt = self.input_param["dDt"]
-                dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dDt,2)*np.power(dDt,2))
+                dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dF,2)*np.power(dF,2) + np.power(dof_dDt,2)*np.power(dDt,2))
                 anl_df["dof"] = dof                
                 anl_df["dof"] = dof
                 of_tmp = anl_df.of + dof
@@ -266,9 +273,10 @@ class Cui_input():
                 self._input_error_mox_()
                 self._input_error_Mf_()
                 self._input_error_Dt_()
+                if self.input_param["mode"] == 3:
+                    self._input_error_F_()
             else:
                 pass
-                
         self._get_ceapath_()
         self.cea_db = cea_post.Read_datset(self.cea_path)
         self._cond_out_()
@@ -433,6 +441,12 @@ class Cui_input():
         Input the error of oxidizer pass flow rate [kg/s]
         """
         self.input_param["dmox"] = float(input("\nInput error of oxidizer mass flow rate [g/s]\n>>"))*1.0e-3
+
+    def _input_error_F_(self):
+        """
+        Input the error of load cell which measures thrust [N]
+        """
+        self.input_param["dF"] = float(input("\nInput error of load cell which measures thrust [N]\n>>"))
 
     def _input_error_Mf_(self):
         """
