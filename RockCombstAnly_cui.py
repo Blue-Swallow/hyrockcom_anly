@@ -53,20 +53,136 @@ class RT():
         self.gamma = inst.cea_db.gen_func("GAMMAs_c") #data-base of specific heat ratio at chamber
         
     def call_rt(self):
+        """ Execute RT and return the analized data as data frame
+        
+        Return
+        -------
+        anl_df: DataFrame
+            analized data with using Re-construction technique
+        """
         print("\nNow executing RT calculation. Please wait.")
         if self.input_param["mode"] == 1:
             anl_df = rt_1.Main(self.ex_df, self.input_param)
+            if self.input_param["mode_error"] == "y":
+                print("\nNow analyzing chamber pressure error...")
+                delta_Pc = self.ex_df.Pc*1.1
+                ex_df_Pc = self.ex_df.copy()
+                ex_df_Pc.Pc = delta_Pc
+                anl_df_dPc = rt_1.Main(ex_df_Pc, self.input_param)
+                dof_dPc = (anl_df_dPc.of - anl_df.of)/(delta_Pc-self.ex_df.Pc)
+                print("\nNow analyzing oxidizer mass flow rate error...")
+                delta_mox = self.ex_df.mox*1.1
+                ex_df_mox = self.ex_df.copy()
+                ex_df_mox.mox = delta_mox
+                anl_df_dmox = rt_1.Main(ex_df_mox, self.input_param)
+                dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
+                print("\nNow analyzing fuel mass consumption error...")
+                delta_Mf = self.input_param["Mf"]*1.1
+                input_param_Mf = self.input_param
+                input_param_Mf["Mf"] = delta_Mf
+                anl_df_Mf = rt_1.Main(self.ex_df, input_param_Mf)
+                dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - self.input_param["Mf"])
+                print("\nNow analyzing nozzle throat diameter error...")
+                delta_Dt = self.input_param["Dt"]*1.1
+                input_param_Dt = self.input_param
+                input_param_Dt["Dt"] = delta_Dt
+                anl_df_Dt = rt_3.Main(self.ex_df, input_param_Dt)
+                dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - self.input_param["Dt"])
+                
+                dPc = self.input_param["dPc"]
+                dmox = self.input_param["dmox"]
+                dMf = self.input_param["dMf"]
+                dDt = self.input_param["dDt"]
+                dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dDt,2)*np.power(dDt,2))
+                anl_df["dof"] = dof
+                of_tmp = anl_df.of + dof
+                mf_tmp = anl_df.mox/of_tmp
+                anl_df["dmf"] = mf_tmp - anl_df["mf"]
+
 #        if self.input_param["mode"] == 2:
 #            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 3:
             anl_df = rt_3.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+            if self.input_param["mode_error"] == "y":
+                print("\nNow analyzing chamber pressure error...")
+                delta_Pc = self.ex_df.Pc*1.1
+                ex_df_Pc = self.ex_df.copy()
+                ex_df_Pc.Pc = delta_Pc
+                anl_df_dPc = rt_3.Main(ex_df_Pc, self.cstr, self.gamma, self.input_param).execute_RT()
+                dof_dPc = (anl_df_dPc.of - anl_df.of)/(delta_Pc-self.ex_df.Pc)
+                print("\nNow analyzing oxidizer mass flow rate error...")
+                delta_mox = self.ex_df.mox*1.1
+                ex_df_mox = self.ex_df.copy()
+                ex_df_mox.mox = delta_mox
+                anl_df_dmox = rt_3.Main(ex_df_mox, self.cstr, self.gamma, self.input_param).execute_RT()
+                dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
+                print("\nNow analyzing fuel mass consumption error...")
+                delta_Mf = self.input_param["Mf"]*1.1
+                input_param_Mf = self.input_param
+                input_param_Mf["Mf"] = delta_Mf
+                anl_df_Mf = rt_3.Main(self.ex_df, self.cstr, self.gamma, input_param_Mf).execute_RT()
+                dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - self.input_param["Mf"])
+                print("\nNow analyzing nozzle throat diameter error...")
+                delta_Dt = self.input_param["Dt"]*1.1
+                input_param_Dt = self.input_param
+                input_param_Dt["Dt"] = delta_Dt
+                anl_df_Dt = rt_3.Main(self.ex_df, self.cstr, self.gamma, input_param_Dt).execute_RT()
+                dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - self.input_param["Dt"])
+                
+                dPc = self.input_param["dPc"]
+                dmox = self.input_param["dmox"]
+                dMf = self.input_param["dMf"]
+                dDt = self.input_param["dDt"]
+                dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dDt,2)*np.power(dDt,2))
+                anl_df["dof"] = dof                
+                anl_df["dof"] = dof
+                of_tmp = anl_df.of + dof
+                mf_tmp = anl_df.mox/of_tmp
+                anl_df["dmf"] = mf_tmp - anl_df["mf"]
 #        if self.input_param["mode"] == 4:
 #            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param)
         if self.input_param["mode"] == 5:
             anl_df = rt_5.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+            if self.input_param["mode_error"] == "y":
+                print("\nNow analyzing chamber pressure error...")
+                delta_Pc = self.ex_df.Pc*1.1
+                ex_df_Pc = self.ex_df.copy()
+                ex_df_Pc.Pc = delta_Pc
+                anl_df_dPc = rt_5.Main(ex_df_Pc, self.cstr, self.gamma, self.input_param).execute_RT()
+                dof_dPc = (anl_df_dPc.of - anl_df.of)/(delta_Pc-self.ex_df.Pc)
+                print("\nNow analyzing oxidizer mass flow rate error...")
+                delta_mox = self.ex_df.mox*1.1
+                ex_df_mox = self.ex_df.copy()
+                ex_df_mox.mox = delta_mox
+                anl_df_dmox = rt_5.Main(ex_df_mox, self.cstr, self.gamma, self.input_param).execute_RT()
+                dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - self.ex_df.mox)
+                print("\nNow analyzing fuel mass consumption error...")
+                delta_Mf = self.input_param["Mf"]*1.1
+                input_param_Mf = self.input_param
+                input_param_Mf["Mf"] = delta_Mf
+                anl_df_Mf = rt_5.Main(self.ex_df, self.cstr, self.gamma, input_param_Mf).execute_RT()
+                dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - self.input_param["Mf"])
+                print("\nNow analyzing nozzle throat diameter error...")
+                delta_Dt = self.input_param["Dt"]*1.1
+                input_param_Dt = self.input_param
+                input_param_Dt["Dt"] = delta_Dt
+                anl_df_Dt = rt_5.Main(self.ex_df, self.cstr, self.gamma, input_param_Dt).execute_RT()
+                dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - self.input_param["Dt"])
+                
+                dPc = self.input_param["dPc"]
+                dmox = self.input_param["dmox"]
+                dMf = self.input_param["dMf"]
+                dDt = self.input_param["dDt"]
+                dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dDt,2)*np.power(dDt,2))
+                anl_df["dof"] = dof                
+                anl_df["dof"] = dof
+                of_tmp = anl_df.of + dof
+                mf_tmp = anl_df.mox/of_tmp
+                anl_df["dmf"] = mf_tmp - anl_df["mf"]
+                
         self.anl_df = anl_df
         return(self.anl_df)
-
+        
 
 class Cui_input():
     """
@@ -143,6 +259,15 @@ class Cui_input():
             self._input_nozzle_()
             self._input_eps_()
             self._input_consump_()
+            flag_error = self._select_error_analysis_()
+            if flag_error:
+                self._input_error_Pc_()
+                self._input_error_mox_()
+                self._input_error_Mf_()
+                self._input_error_Dt_()
+            else:
+                pass
+                
         self._get_ceapath_()
         self.cea_db = cea_post.Read_datset(self.cea_path)
         self._cond_out_()
@@ -214,7 +339,7 @@ class Cui_input():
             while(True):
                 print("\nDo you want to use following values contained in \"cond.json\"?")
                 print(cond_dict)
-                char = input("\n  y/n ?\n>>")
+                char = input("  y/n ?\n>>")
                 if char == "y":
                     flag = True
                     break
@@ -226,7 +351,32 @@ class Cui_input():
         else:
             flag = False
         return(flag, cond_dict)
-            
+        
+    def _select_error_analysis_(self):
+        """
+        Select whether execute error analysys or not
+        
+        Return
+        ------
+        flag: bool
+            True: execute error analisys
+            False: don't execute error analisys
+        """
+        while(True):
+            print("\nDo you want to execute error analisys?")
+            char = input("\n  y/n ?\n>>")
+            if char == "y":
+                flag = True
+                self.input_param["mode_error"] = "y"
+                break
+            elif char == "n":
+                flag = False
+                self.input_param["mode_error"] = "n"
+                break
+            else:
+                pass
+        return(flag)
+        
            
     def _select_mode_(self):
         """
@@ -270,7 +420,32 @@ class Cui_input():
         """
 #        print("Please input fuel consumption [g]")
         self.input_param["Mf"] = float(input("\nInput fuel consumption [g]\n>>"))*1.0e-3
-        
+    
+    def _input_error_Pc_(self):
+        """
+        Input the error of pressure sensor which measures chamber pressure [Pa]
+        """
+        self.input_param["dPc"] = float(input("\nInput error of pressure sensor wihch measures chamber pressue [MPa]\n>>"))*1.0e+6
+
+    def _input_error_mox_(self):
+        """
+        Input the error of oxidizer pass flow rate [kg/s]
+        """
+        self.input_param["dmox"] = float(input("\nInput error of oxidizer mass flow rate [g/s]\n>>"))*1.0e-3
+
+    def _input_error_Mf_(self):
+        """
+        Input the error of total fuel mass consumption [kg]
+        """
+        self.input_param["dMf"] = float(input("\nInput error of fuel mass consumption [g]\n>>"))*1.0e-3
+
+    def _input_error_Dt_(self):
+        """
+        Input the error of nozzle throat diamter [m]
+        """
+        self.input_param["dDt"] = float(input("\nInput error of nozzle throat diameter [mm]\n>>"))*1.0e-3
+
+    
     def _get_ceapath_(self):
         """
         Return the folder path cantaining the results of cea calculation.
