@@ -149,6 +149,7 @@ class RT():
                 anl_df["dmf"] = np.abs(mf_tmp - anl_df["mf"])
 #        if self.input_param["mode"] == 4:
 #            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param)
+                
         if self.input_param["mode"] == 5:
             anl_df = rt_5.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
             if self.input_param["mode_error"] == "y":
