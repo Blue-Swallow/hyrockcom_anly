@@ -4,6 +4,7 @@
 *.lib
 *.spec
 *.bat
+*.json
 .*
 _*
 build
