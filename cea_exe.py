@@ -69,6 +69,10 @@ class CEA_execute:
                 pass
             else:
                 os.mkdir(dbfld_path) #make output folder
+            # if os.path.exists(os.path.join(dbfld_path, "MoleFraction")):
+            #     pass
+            # else:
+            #     os.mkdir(os.path.join(dbfld_path, "MoleFraction")) #make output folder of mole_fraction
         else:
             sys.exit("There is no such a directory, \n\"{}\"".format(self.fld_path))
         return(cadir, inpfld_path, outfld_path, dbfld_path)
@@ -94,6 +98,9 @@ class CEA_execute:
         """
         if len(point)==0:
             for i in val_dict:
+                dir = os.path.dirname(os.path.join(dbfld_path, i + ".csv"))
+                if not os.path.exists(dir):
+                    os.mkdir(dir)
                 df = pd.DataFrame(val_dict[i], index=of, columns=Pc)
                 df.to_csv(os.path.join(dbfld_path, i) + ".csv")
         else:
@@ -150,7 +157,7 @@ class CEA_execute:
             shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"cea","tmp.inp"))
             self.single_exe(cea_dirpath, "tmp")
             shutil.copy(os.path.join(cea_dirpath, "tmp.out"), os.path.join(outfld_path, fname+".out"))
-            cond, therm, trans, rock = Read_output("cea").read_out("tmp")
+            cond, therm, trans, rock, mole = Read_output("cea").read_out("tmp")
             
             therm.update(trans) #combine dict "therm" and dict "trans"
 
@@ -162,32 +169,67 @@ class CEA_execute:
                 value_t = copy.deepcopy(therm)
                 value_e = copy.deepcopy(therm)
                 for j in therm:
-                    value_c[j] = np.empty((0,0), float)
-                    value_t[j] = np.empty((0,0), float)
-                    value_e[j] = np.empty((0,0), float)                    
+                    value_c[j] = np.zeros((0,0), float)
+                    value_t[j] = np.zeros((0,0), float)
+                    value_e[j] = np.zeros((0,0), float)                    
                 value_rock = copy.deepcopy(rock)
                 for j in rock:
-                    value_rock[j] = np.empty((0,0), float)
-                
+                    value_rock[j] = np.zeros((0,0), float)
+                value_mole = copy.deepcopy(mole)
+                keys_mole = list(mole.keys())
+                for j in mole:
+                    # value_mole[j] = np.zeros((0,0), float)
+                    for k in range(mole[j].__len__()):
+                        value_mole[j][k] = np.zeros((0,0), float)
+
+#            list_combine = list(mole.keys()) + keys_mole
+#            list_only = [x for x in list_combine if list_combine.count(x) == 1]
+            list_only = [x for x in keys_mole if x not in list(mole.keys())]
+
             if cond["O/F"] not in of:
                 #extend row of array when o/f is renewed
                 of.append(cond["O/F"])
                 for j in therm:
-                    value_c[j] = np.append(value_c[j], np.empty((1,value_c[j].shape[1]), float), axis=0)
-                    value_t[j] = np.append(value_t[j], np.empty((1,value_t[j].shape[1]), float), axis=0)
-                    value_e[j] = np.append(value_e[j], np.empty((1,value_e[j].shape[1]), float), axis=0)
+                    value_c[j] = np.append(value_c[j], np.zeros((1,value_c[j].shape[1]), float), axis=0)
+                    value_t[j] = np.append(value_t[j], np.zeros((1,value_t[j].shape[1]), float), axis=0)
+                    value_e[j] = np.append(value_e[j], np.zeros((1,value_e[j].shape[1]), float), axis=0)
                 for j in rock:
-                    value_rock[j] = np.append(value_rock[j], np.empty((1,value_rock[j].shape[1]), float), axis=0)
+                    value_rock[j] = np.append(value_rock[j], np.zeros((1,value_rock[j].shape[1]), float), axis=0)
+                for j in mole:
+                    if j not in keys_mole:
+                        value_mole[j] = [np.array([]) for k in range(mole[j].__len__())]
+                        for k in range(mole[j].__len__()):
+                            value_mole[j][k] = np.zeros((len(of), len(Pc)), float)
+#                        keys_mole.append(j)
+                    else:
+                        for k in range(mole[j].__len__()):
+                            value_mole[j][k] = np.append(value_mole[j][k], np.zeros((1,value_mole[j][k].shape[1]), float), axis=0)
+                for i in list_only:
+                    for k in range(mole[j].__len__()):
+                        value_mole[i][k] = np.append(value_mole[i][k], np.zeros((1,value_mole[i][k].shape[1]), float), axis=0)
 
             if cond["Pc"] not in Pc:
                 #extend column of array when Pc is renewed
                 Pc.append(cond["Pc"])
                 for j in therm:
-                    value_c[j] = np.append(value_c[j], np.empty((value_c[j].shape[0],1), float), axis=1)
-                    value_t[j] = np.append(value_t[j], np.empty((value_t[j].shape[0],1), float), axis=1)
-                    value_e[j] = np.append(value_e[j], np.empty((value_e[j].shape[0],1), float), axis=1)
+                    value_c[j] = np.append(value_c[j], np.zeros((value_c[j].shape[0],1), float), axis=1)
+                    value_t[j] = np.append(value_t[j], np.zeros((value_t[j].shape[0],1), float), axis=1)
+                    value_e[j] = np.append(value_e[j], np.zeros((value_e[j].shape[0],1), float), axis=1)
                 for j in rock:
-                    value_rock[j] = np.append(value_rock[j], np.empty((value_rock[j].shape[0],1), float), axis=1)
+                    value_rock[j] = np.append(value_rock[j], np.zeros((value_rock[j].shape[0],1), float), axis=1)
+                for j in mole:
+                    if j not in keys_mole:
+                        value_mole[j] = [np.array([]) for k in range(mole[j].__len__())]
+                        for k in range(mole[j].__len__()):
+                            value_mole[j][k] = np.zeros((len(of), len(Pc)), float)
+#                        keys_mole.append(j)
+                    else:
+                        for k in range(mole[j].__len__()):
+                            value_mole[j][k] = np.append(value_mole[j][k], np.zeros((value_mole[j][k].shape[0],1), float), axis=1)
+                for i in list_only:
+                    for k in range(mole[j].__len__()):                    
+                        value_mole[i][k] = np.append(value_mole[i][k], np.zeros((value_mole[i][k].shape[0],1), float), axis=1)
+
 
             p = of.index(cond["O/F"])
             q = Pc.index(cond["Pc"])
@@ -199,13 +241,39 @@ class CEA_execute:
             for j in rock:
                 #Substitute each rocket-parameter value
                 value_rock[j][p,q] = rock[j][1]
-                
+            for j in mole:
+                #Substitute each mole fraction
+                if j not in keys_mole:
+                    value_mole[j] = [np.array([]) for k in range(mole[j].__len__())]
+                    for k in range(mole[j].__len__()):
+                        value_mole[j][k] = np.zeros((len(of), len(Pc)), float)
+                        value_mole[j][k][p,q] = mole[j][k]
+                    keys_mole.append(j)
+                else:
+                    for k in range(mole[j].__len__()):
+                        value_mole[j][k][p,q] = mole[j][k]
+                        # if there is not molecular in the dict of mole, following operation input 0.0 in to database
+                        for i in list_only:
+                            value_mole[i][k][p,q] = 0.0
+        
+        # exchange the content of "value_mole"
+        tmp_mole = [np.nan for i in range(value_mole[j].__len__())]
+        for i in range(value_mole[j].__len__()):
+            tmp_dic = {}
+            for j in value_mole:
+                tmp_dic[j] = value_mole[j][i]
+            tmp_mole[i] = tmp_dic
+        value_mole = tmp_mole
+
         self._csv_out_(dbfld_path, of, Pc, value_c, point="c") #write out in csv-file
         self._csv_out_(dbfld_path, of, Pc, value_t, point="t") #write out in csv-file
         self._csv_out_(dbfld_path, of, Pc, value_e, point="e") #write out in csv-file
         self._csv_out_(dbfld_path, of, Pc, value_rock, point="") #write out in csv-file
+        point_list_mole = ["Chamber", "Throat", "Exit"]
+        for i in range(value_mole.__len__()):
+            self._csv_out_(os.path.join(dbfld_path, "MoleFraction@" + point_list_mole[i]), of, Pc, value_mole[i], point="") #write mole-fraction out in csv-file
             
-        return(of, Pc, value_c, value_t, value_e, value_rock)
+        return(of, Pc, value_c, value_t, value_e, value_rock, value_mole)
 
 
 class Read_output:
@@ -304,6 +372,8 @@ class Read_output:
         trans_param = self.trans_param
         emp_list = ["" for i in range(len(trans_param))]
         trans_param = dict(zip(trans_param, emp_list))
+        
+        mole_fraction = {}
     
         line = str("null")
         flag_cp = False
@@ -312,8 +382,10 @@ class Read_output:
         while line:
             line = file.readline()
             warnings.filterwarnings("ignore") # ignore Further Warnings about "empty-string"
-            dat = re.split("[\s=]*",line)
+            dat = re.split("[\s=]+",line)
             del(dat[0])
+            if (len(dat) >= 1):
+                del(dat[-1])
             if(len(dat)==0): # empty line
                 pass
             else: # not-empty line
@@ -339,10 +411,20 @@ class Read_output:
                     elif(count_trans < 3):
                         trans_param[dat_head] = self._vextract_(dat)
                         count_trans += 1
-#                elif(dat_head == "MOLE"):
-#                    flag = True
-#                elif
-                    
+                elif(dat_head == "MOLE"):
+                    flag_mole = True
+                    continue
+                elif(dat_head == "*"):
+                    flag_mole = False
+                elif(flag_mole):
+                    for i in range(len(dat)):
+                        tmp_dat = dat[i].replace(".", "")
+                        if tmp_dat.isdecimal():
+                            tmp_fraction.append(float(dat[i]))
+                        else:
+                            tmp_fraction = []
+                            key = dat[i].strip("*")
+                        mole_fraction[key] = tmp_fraction
         file.close()
 
     #    therm_ntpl = collections.namedtuple("thermval",["c","t","e"])    
@@ -365,10 +447,16 @@ class Read_output:
     #    Ispvac = rock_ntpl(t=rock_param["Ivac"][0], e=rock_param["Ivac"][1])
     #    Isp = rock_ntpl(t=rock_param["Isp"][0], e=rock_param["Isp"][1])    
     
-        return(cond_param, therm_param, trans_param, rock_param)
+        return(cond_param, therm_param, trans_param, rock_param, mole_fraction)
 
 
 if __name__ == "__main__":
     inst = CEA_execute()
-    of, Pc, value_c, value_t, value_e, value_rock = inst.all_exe()
+    of, Pc, value_c, value_t, value_e, value_rock, value_mole = inst.all_exe()
+#    fld_path = 'D:\\T.J\\Github\\HybridRocketCombustionSim\\Develop\\RockCombustSim\\cea_db\\LOX_PE\\out'
+#    cea_fname = 'Pc_00.20__of_00.10'
+#    Read = Read_output(fld_path)
+#    result = Read.read_out(cea_fname)
+#    cond, therm, trans, rock, mole = result
+
 

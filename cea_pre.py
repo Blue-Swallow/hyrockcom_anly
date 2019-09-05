@@ -10,9 +10,6 @@ from tqdm import tqdm
 
 cond_name = "cond.txt"
 
-
-
-
 class Cui_input():
     """
     Class to attract information through CUI to generate .inp file
