@@ -1,6 +1,7 @@
 *.spec
 *.bat
 *.json
+*.db
 .*
 _*
 build
