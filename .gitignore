@@ -3,7 +3,7 @@
 *.json
 *.db
 .*
-_*
+__pycache__
 build
 dist
 cea/*.inp
