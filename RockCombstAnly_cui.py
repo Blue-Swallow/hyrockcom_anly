@@ -14,8 +14,11 @@ from cea_db_maker import cea_exe
 from cea_db_maker import cea_pre
 from cea_db_maker import cea_post
 from rt import rt_1
+from rt import rt_1_error
 from rt import rt_3
+from rt import rt_3_error
 from rt import rt_5
+from rt import rt_5_error
 
 
 class RT():
@@ -65,7 +68,8 @@ class RT():
         if self.input_param["mode"] == 1:
             anl_df = rt_1.Main(self.ex_df, self.input_param)
             if self.input_param["mode_error"] == "y":
-                anl_df = self.error_cal_rt1(anl_df)
+                # anl_df = self.error_cal_rt1(anl_df)
+                anl_df = rt_1_error.main(anl_df, self.ex_df, self.input_param)
                 
 #        if self.input_param["mode"] == 2:
 #            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
@@ -73,18 +77,20 @@ class RT():
         if self.input_param["mode"] == 3:
             anl_df = rt_3.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
             if self.input_param["mode_error"] == "y":
-                anl_df = self.error_cal_rt3(anl_df)
+                # anl_df = self.error_cal_rt3(anl_df)
+                anl_df = rt_3_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)                
 
 #        if self.input_param["mode"] == 4:
 #            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param)
-                
+
         if self.input_param["mode"] == 5:
             anl_df = rt_5.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
             if self.input_param["mode_error"] == "y":
-                anl_df = self.error_cal_rt5(anl_df)
-                
+                # anl_df = self.error_cal_rt5(anl_df)
+                anl_df = rt_5_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
+
         self.anl_df = anl_df
-        print("RT Calculation was successfully finished!")
+        print("\nRT Calculation was successfully finished!")
         return(self.anl_df)
     
     

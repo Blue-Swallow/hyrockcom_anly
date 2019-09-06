@@ -6,9 +6,5 @@
 __pycache__
 build
 dist
-cea/*.inp
-cea/*.out
-cea_db/
-!cea_db/sample/
 exp_dat/*
 !exp_dat/sample
