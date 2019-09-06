@@ -17,33 +17,32 @@ This program is "Re-Construction Technique" for data reduction or hybrid rocket 
 当研究室では再現法を5種類に分類しており，本プログラムでは基本的な3種　"RT-1", "RT-3", "RT-5" を実行できる．各手法で出来ることを以下に示す．  
 
 **RT-1**  
-燃焼中の特性排気速度$c^*$を一定として，O/F履歴と燃料流量履歴を算出する  
+燃焼中の特性排気速度c*を一定として，O/F履歴と燃料流量履歴を算出する  
 
-* 出力：O/F履歴，燃料流量履歴，平均$c^*$
+* 出力：O/F履歴，燃料流量履歴，平均c*
 * 入力：燃焼室圧力履歴，酸化剤流量履歴，燃料消費量，ノズルスロート径
-* 仮定：$c^*$一定，$c^*$効率($\eta_{c^*}$)=1.0，ノズルエロージョン無視
+* 仮定：c*一定，c*効率=1.0，ノズルエロージョン無視
 
 出力結果例）  
 
 **RT-3**  
-O/F履歴，燃料流量履歴，特性排気速度$c^*$履歴，特性排気速度効率$\eta_{c^*}$履歴を算出する  
+O/F履歴，燃料流量履歴，特性排気速度c*履歴，特性排気速度効率履歴を算出する  
 
-* 出力：O/F履歴，燃料流量履歴，$c^*$履歴，$\eta_{c^*}$履歴
+* 出力：O/F履歴，燃料流量履歴，c*履歴，特性排気速度効率履歴
 * 入力：燃焼室圧力履歴，酸化剤流量履歴，推力履歴，燃料消費量，ノズルスロート径，ノズル拡大比
 * 仮定：ノズルエロージョン無視
 
 出力結果例）  
 
 **RT-5**  
-燃焼中の特性排気速度効率$\eta_{c^*}$を一定として，O/F履歴，燃料流量履歴，特性排気速度$c^*$履歴を算出する  
+燃焼中の特性排気速度効率を一定として，O/F履歴，燃料流量履歴，特性排気速度c*履歴を算出する  
 
-* 出力：O/F履歴，燃料流量履歴，$c^*$履歴，平均$\eta_{c^*}$
+* 出力：O/F履歴，燃料流量履歴，c*履歴，平均特性排気速度効率
 * 入力：燃焼室圧力履歴，酸化剤流量履歴，燃料消費量，ノズルスロート径
-* 仮定：$c^*$効率($\eta_{c^*}$)一定，ノズルエロージョン無視
+* 仮定：特性排気速度効率一定，ノズルエロージョン無視
 
 出力結果例）  
-
-推力データも得られるのであればRT-3が最も高性能な手法であるが，RT-5は計算のロバスト性が高く発散しにくいという特徴がある．  
+  
 また，誤差解析機能もついており各入力値の誤差を指定すれば，出力されるO/F履歴，燃料流量履歴の誤差も計算可能である．
 
 ## 2. Quick Start
@@ -68,11 +67,11 @@ O/F履歴，燃料流量履歴，特性排気速度$c^*$履歴，特性排気速
 
 本手法の理論について記述した論文等
 
-* [Nagata et. al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.](docs/reference/Evaluations\ of\ Data\ Reduction\ Methods\ for\ Hybrid\ Rockets.pdf)
+* [Nagata et. al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.](docs/reference/ref1.pdf)
 * [Nagata et. al., "Accuracy and applicable range of a reconstruction technique for hybrid rockets", Advances in Aircraft and Spacecraft Science, Vol.1, No.3, pp273-289.](http://www.techno-press.org/content/?page=article&journal=aas&volume=1&num=3&ordernum=2)
 
 各手法の計算フローや利用している数式の説明
 
-RT-1　　(coming soon)
-RT-3　　(coming soon)
-RT-5　　(coming soon)
+RT-1　　(coming soon)  
+RT-3　　(coming soon)  
+RT-5　　(coming soon)  
