@@ -21,6 +21,12 @@ class CEA_execute:
     """
 
     def __init__(self, fld_path=None):
+        """"        
+        Parameters
+        ----------
+        fld_path : string, optional
+            Folder's path of data-base, by default None
+        """
         self.fld_path = fld_path
         pass
     
@@ -74,7 +80,7 @@ class CEA_execute:
             # else:
             #     os.mkdir(os.path.join(dbfld_path, "MoleFraction")) #make output folder of mole_fraction
         else:
-            sys.exit("There is no such a directory, \n\"{}\"".format(self.fld_path))
+            sys.exit("There is no such a directory, \n\"{}\"".format(self.inpfld_path))
         return(cadir, inpfld_path, outfld_path, dbfld_path)
 
 
@@ -121,7 +127,7 @@ class CEA_execute:
             It is required to put ".inp" file in the same directory with "FCEA2.exe"
         """
         #cea_fname : Name and case of CEA input-file & output-file
-        os.chdir("cea")
+        os.chdir(cea_dirpath)
         cea_path = os.path.join(cea_dirpath, "FCEA2.exe")
         command = os.path.join(cea_dirpath,inp_fname) + "\n"
         p = Popen(cea_path, stdin=PIPE, stdout=PIPE)

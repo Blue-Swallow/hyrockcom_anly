@@ -362,7 +362,8 @@ class Cui_input():
             of: list, [start, end, interval], each element type is float  \n
             
         """
-        path = os.path.join(self._getpath_(), "inp")
+        fld_path = self._getpath_()
+        path = os.path.join(fld_path, "inp")
 #        oxid,fuel,dh,Pc,of,n,elem  = read_cond(path)
         of = np.arange(self.of[0], self.of[1], self.of[2])
         Pc = np.arange(self.Pc[0], self.Pc[1], self.Pc[2])
@@ -376,7 +377,7 @@ class Cui_input():
             for j in range(np.size(of)):
 #                make_inp(path, self.option, of[j], Pc[i], oxid, fuel, self.f_enthlpy, elem_input, self.eps)
                 make_inp(path, self.option, of[j], Pc[i], self.list_oxid, self.list_fuel, self.eps)
-        return(path)
+        return(fld_path)
 
 
 
