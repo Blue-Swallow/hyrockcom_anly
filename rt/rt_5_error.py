@@ -66,7 +66,6 @@ def main(anl_df, ex_df, input_param, func_cstr, func_gamma):
     dDt = input_param["dDt"]
     dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dDt,2)*np.power(dDt,2))
     anl_df["dof"] = dof                
-    anl_df["dof"] = dof
     of_tmp = anl_df.of + dof
     mf_tmp = anl_df.mox/of_tmp
     anl_df["dmf"] = np.abs(mf_tmp - anl_df["mf"])

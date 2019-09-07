@@ -38,7 +38,7 @@ def Main(ex_df, input_param):
            "Pc": Pc,
            "of": of,
            "mf": mf,
-           "cstr_ave": [cstr_ave for i in ex_df.index]}
+           "cstr_th": [cstr_ave for i in ex_df.index]}
     anl_df = pd.DataFrame(dic, index=ex_df.index)
     return(anl_df)
     

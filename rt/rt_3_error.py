@@ -39,41 +39,40 @@ def main(anl_df, ex_df, input_param, func_cstr, func_gamma):
     delta_Pc = ex_df.Pc*1.1
     ex_df_Pc = ex_df.copy()
     ex_df_Pc.Pc = delta_Pc
-    anl_df_dPc = rt_3.Main(ex_df_Pc, func_cstr, func_gamma, ex_df).execute_RT()
+    anl_df_dPc = rt_3.Main(ex_df_Pc, func_cstr, func_gamma, input_param).execute_RT()
     dof_dPc = (anl_df_dPc.of - anl_df.of)/(delta_Pc-ex_df.Pc)
     print("\nNow analyzing oxidizer mass flow rate error...")
     delta_mox = ex_df.mox*1.1
     ex_df_mox = ex_df.copy()
     ex_df_mox.mox = delta_mox
-    anl_df_dmox = rt_3.Main(ex_df_mox, func_cstr, func_gamma, ex_df).execute_RT()
+    anl_df_dmox = rt_3.Main(ex_df_mox, func_cstr, func_gamma, input_param).execute_RT()
     dof_dmox = (anl_df_dmox.of - anl_df.of)/(delta_mox - ex_df.mox)
     print("\nNow analyzing thrust error...")
     delta_F = ex_df.F*1.1
     ex_df_F = ex_df.copy()
     ex_df_F.F = delta_F
-    anl_df_dF = rt_3.Main(ex_df_F, func_cstr, func_gamma, ex_df).execute_RT()
+    anl_df_dF = rt_3.Main(ex_df_F, func_cstr, func_gamma, input_param).execute_RT()
     dof_dF = (anl_df_dF.of - anl_df.of)/(delta_F - ex_df.F)
     print("\nNow analyzing fuel mass consumption error...")
-    delta_Mf = ex_df["Mf"]*1.1
-    input_param_Mf = copy.deepcopy(ex_df)
+    delta_Mf = input_param["Mf"]*1.1
+    input_param_Mf = copy.deepcopy(input_param)
     input_param_Mf["Mf"] = delta_Mf
     anl_df_Mf = rt_3.Main(ex_df, func_cstr, func_gamma, input_param_Mf).execute_RT()
-    dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - ex_df["Mf"])
+    dof_dMf = (anl_df_Mf.of - anl_df.of)/(delta_Mf - input_param["Mf"])
     print("\nNow analyzing nozzle throat diameter error...")
-    delta_Dt = ex_df["Dt"]*1.1
-    input_param_Dt = copy.deepcopy(ex_df)
+    delta_Dt = input_param["Dt"]*1.1
+    input_param_Dt = copy.deepcopy(input_param)
     input_param_Dt["Dt"] = delta_Dt
     anl_df_Dt = rt_3.Main(ex_df, func_cstr, func_gamma, input_param_Dt).execute_RT()
-    dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - ex_df["Dt"])
+    dof_dDt = np.pi*(anl_df_Dt.of - anl_df.of)/(delta_Dt - input_param["Dt"])
     
-    dPc = ex_df["dPc"]
-    dmox = ex_df["dmox"]
-    dF = ex_df["dF"]
-    dMf = ex_df["dMf"]
-    dDt = ex_df["dDt"]
+    dPc = input_param["dPc"]
+    dmox = input_param["dmox"]
+    dF = input_param["dF"]
+    dMf = input_param["dMf"]
+    dDt = input_param["dDt"]
     dof = np.sqrt(np.power(dof_dPc,2)*np.power(dPc,2) + np.power(dof_dMf,2)*np.power(dMf,2) + np.power(dof_dmox,2)*np.power(dmox,2) + np.power(dof_dF,2)*np.power(dF,2) + np.power(dof_dDt,2)*np.power(dDt,2))
     anl_df["dof"] = dof                
-    anl_df["dof"] = dof
     of_tmp = anl_df.of + dof
     mf_tmp = anl_df.mox/of_tmp
     anl_df["dmf"] = np.abs(mf_tmp - anl_df["mf"])

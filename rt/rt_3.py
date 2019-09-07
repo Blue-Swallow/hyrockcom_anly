@@ -35,6 +35,8 @@ class Main:
         self.anl_df["lambda"] = np.array([lmbd for i in self.anl_df.index])
         self.anl_df["Pe"] = np.array([self.func_Pe(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
+        self.anl_df["gamma"] = np.array([self.func_gamma(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
+        self.anl_df["cstr_th"] = np.array([self.func_cstr(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.cal_eta()
         return(pd.concat([self.ex_df, self.anl_df], axis=1))
 
@@ -275,14 +277,14 @@ def func_Ve(of, Pc, eps, func_cstr, func_gamma):
 if __name__ == "__main__":
 #    import sys
 #    sys.path.append(os.getcwd())
-    import RockCombstAnly_cui
-    inst = RockCombstAnly_cui.Cui_input()
-    db_of = RockCombstAnly_cui.RT(inst).of
-    db_Pc = RockCombstAnly_cui.RT(inst).Pc
-    ex_df = RockCombstAnly_cui.RT(inst).ex_df
-    func_cstr = RockCombstAnly_cui.RT(inst).cstr
-    func_gamma = RockCombstAnly_cui.RT(inst).gamma
-    input_param = RockCombstAnly_cui.RT(inst).input_param
+    import HyRockCom_Anly_cui
+    inst = HyRockCom_Anly_cui.Cui_input()
+    db_of = HyRockCom_Anly_cui.RT(inst).of
+    db_Pc = HyRockCom_Anly_cui.RT(inst).Pc
+    ex_df = HyRockCom_Anly_cui.RT(inst).ex_df
+    func_cstr = HyRockCom_Anly_cui.RT(inst).cstr
+    func_gamma = HyRockCom_Anly_cui.RT(inst).gamma
+    input_param = HyRockCom_Anly_cui.RT(inst).input_param
     
     result = Main(ex_df, func_cstr, func_gamma, input_param)
     df = result.execute_RT()

@@ -31,6 +31,9 @@ class Main:
             self.iterat_newton_eta(maxiter, eta_init=eta_init)
         except:
             self.iterat_brentq_eta(maxiter, eta_min=0.1, eta_max=2.0)
+        self.anl_df["gamma"] = np.array([self.func_gamma(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
+        self.anl_df["cstr_th"] = np.array([self.func_cstr(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
+        self.anl_df["cstr_ex"] = self.ex_df.Pc*np.pi/4*np.power(self.input_param["Dt"], 2)/(self.ex_df.mox + self.anl_df.mf)
         return(pd.concat([self.ex_df, self.anl_df], axis=1))
         
     def iterat_brentq_eta(self, maxiter, eta_min=0.5, eta_max=2.0):
@@ -244,14 +247,14 @@ class Main:
 
 
 if __name__ == "__main__":
-    import RockCombstAnly_cui
-    inst = RockCombstAnly_cui.Cui_input()
-    db_of = RockCombstAnly_cui.RT(inst).of
-    db_Pc = RockCombstAnly_cui.RT(inst).Pc
-    ex_df = RockCombstAnly_cui.RT(inst).ex_df
-    func_cstr = RockCombstAnly_cui.RT(inst).cstr
-    func_gamma = RockCombstAnly_cui.RT(inst).gamma
-    input_param = RockCombstAnly_cui.RT(inst).input_param
+    import HyRockCom_Anly_cui
+    inst = HyRockCom_Anly_cui.Cui_input()
+    db_of = HyRockCom_Anly_cui.RT(inst).of
+    db_Pc = HyRockCom_Anly_cui.RT(inst).Pc
+    ex_df = HyRockCom_Anly_cui.RT(inst).ex_df
+    func_cstr = HyRockCom_Anly_cui.RT(inst).cstr
+    func_gamma = HyRockCom_Anly_cui.RT(inst).gamma
+    input_param = HyRockCom_Anly_cui.RT(inst).input_param
     
     result = Main(ex_df, func_cstr, func_gamma, input_param)
     df = result.execute_RT(maxiter=20)
