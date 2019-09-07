@@ -12,8 +12,8 @@ from scipy import integrate
 from scipy import optimize
 from tqdm import tqdm
 import os
-import rt_1
-import rt_5
+from . import rt_5
+
 
 class Main:
     def __init__(self, ex_df, func_cstr, func_gamma, input_param, plot=False):
@@ -35,6 +35,8 @@ class Main:
         self.anl_df["lambda"] = np.array([lmbd for i in self.anl_df.index])
         self.anl_df["Pe"] = np.array([self.func_Pe(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
+        self.anl_df["gamma"] = np.array([self.func_gamma(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
+        self.anl_df["cstr_th"] = np.array([self.func_cstr(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.cal_eta()
         return(pd.concat([self.ex_df, self.anl_df], axis=1))
 
@@ -131,10 +133,15 @@ class Main:
         Ae = np.power(self.input_param["Dt"], 2)*np.pi/4 * eps
         self.of_init = self.of_init.where(self.of_init>0, other=1.0e-2)
         for i in tqdm(self.ex_df.index):
+            of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
             try:
                 tmp = optimize.newton(self.func_error_eq9,  self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
             except:
-                tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, 300, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                try:
+                    tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, of_bound_max, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                except ValueError:
+                    # if O/F exceeds of_bound_max and stop at optimization, maximum value of O/F boundary is assined as O/F
+                    tmp = of_bound_max
             self.of = np.append(self.of, tmp)
             j +=1
         self.anl_df["of"] = self.of
@@ -268,14 +275,16 @@ def func_Ve(of, Pc, eps, func_cstr, func_gamma):
     return(Ve)
 
 if __name__ == "__main__":
-    import RockCombstAnly
-    inst = RockCombstAnly.Cui_input()
-    db_of = RockCombstAnly.RT(inst).of
-    db_Pc = RockCombstAnly.RT(inst).Pc
-    ex_df = RockCombstAnly.RT(inst).ex_df
-    func_cstr = RockCombstAnly.RT(inst).cstr
-    func_gamma = RockCombstAnly.RT(inst).gamma
-    input_param = RockCombstAnly.RT(inst).input_param
+#    import sys
+#    sys.path.append(os.getcwd())
+    import HyRockCom_Anly_cui
+    inst = HyRockCom_Anly_cui.Cui_input()
+    db_of = HyRockCom_Anly_cui.RT(inst).of
+    db_Pc = HyRockCom_Anly_cui.RT(inst).Pc
+    ex_df = HyRockCom_Anly_cui.RT(inst).ex_df
+    func_cstr = HyRockCom_Anly_cui.RT(inst).cstr
+    func_gamma = HyRockCom_Anly_cui.RT(inst).gamma
+    input_param = HyRockCom_Anly_cui.RT(inst).input_param
     
     result = Main(ex_df, func_cstr, func_gamma, input_param)
     df = result.execute_RT()

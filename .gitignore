@@ -1,6 +1,10 @@
-*.inp
-*.out
-*.exe
-*.lib
 *.spec
-*/
+*.bat
+*.json
+*.db
+.*
+__pycache__
+build
+dist
+exp_dat/*
+!exp_dat/sample

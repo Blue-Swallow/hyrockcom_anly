@@ -31,12 +31,14 @@ def Main(ex_df, input_param):
     Pc = np.array(ex_df.Pc)
     mox = np.array(ex_df.mox)
     of = (cstr_ave*mox)/(Pc*At-cstr_ave*mox)
+    mf = mox/of
 #    dic = {"of": of,
 #           "cstr_ave": [cstr_ave for i in ex_df.index]}
-    dic = {"of": of,
-           "cstr_ave": [cstr_ave for i in ex_df.index],
-           "up": cstr_ave*mox,
-           "below": (Pc*At-cstr_ave*mox)}
+    dic = {"mox": mox,
+           "Pc": Pc,
+           "of": of,
+           "mf": mf,
+           "cstr_th": [cstr_ave for i in ex_df.index]}
     anl_df = pd.DataFrame(dic, index=ex_df.index)
     return(anl_df)
     
