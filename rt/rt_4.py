@@ -135,10 +135,10 @@ class Main:
         for i in tqdm(self.ex_df.index):
             of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
             try:
-                tmp = optimize.newton(self.func_error_eq9,  self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
+                tmp = optimize.newton(self.func_error_eq10,  self.of_init[i], maxiter=100, tol=1.0e-3, args=(i, lmbd, eps, Ae))
             except:
                 try:
-                    tmp = optimize.brentq(self.func_error_eq9, 1.0e-2, of_bound_max, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
+                    tmp = optimize.brentq(self.func_error_eq10, 1.0e-2, of_bound_max, maxiter=100, xtol=1.0e-3, args=(i, lmbd, eps, Ae))
                 except ValueError:
                     # if O/F exceeds of_bound_max and stop at optimization, maximum value of O/F boundary is assined as O/F
                     tmp = of_bound_max
@@ -154,28 +154,28 @@ class Main:
         warnings.resetwarnings()
         return(self.of)
 
-    def func_error_of(self, of, time, lmbd, eps, Ae):
-        Ve = func_Ve(of, self.ex_df.Pc[time], eps, self.func_cstr, self.func_gamma)
-        Pe = self.func_Pe(of, self.ex_df.Pc[time])
-        mox = self.ex_df.mox[time]
-        F = self.ex_df.F[time]
-        of_cal = lmbd*mox*Ve / (F - (Pe-self.Pa)*Ae - lmbd*Ve*mox)
-        error_of = (of - of_cal)/of_cal
-        self.error_of = error_of
-        return(self.error_of)
+    # def func_error_of(self, of, time, lmbd, eps, Ae):
+    #     Ve = func_Ve(of, self.ex_df.Pc[time], eps, self.func_cstr, self.func_gamma)
+    #     Pe = self.func_Pe(of, self.ex_df.Pc[time])
+    #     mox = self.ex_df.mox[time]
+    #     F = self.ex_df.F[time]
+    #     of_cal = lmbd*mox*Ve / (F - (Pe-self.Pa)*Ae - lmbd*Ve*mox)
+    #     error_of = (of - of_cal)/of_cal
+    #     self.error_of = error_of
+    #     return(self.error_of)
             
-    def func_error_eq9(self, of, t, lmbd,eps,Ae):
-        """ Return the error of Eq.9
+    def func_error_eq10(self, of, t, lmbd,eps,Ae):
+        """ Return the error of Eq.10
         """
-        left_eq9 = self.func_left_eq9(t)
-        right_eq9 = self.func_right_eq9(of,t,lmbd,eps,Ae)
+        left_eq9 = self.func_left_eq10(t)
+        right_eq9 = self.func_right_eq10(of,t,lmbd,eps,Ae)
         diff = right_eq9 - left_eq9
         error = diff/left_eq9
         return(error)
 
-    def func_left_eq9(self, time):
+    def func_left_eq10(self, time):
         """
-        Left-hand side value of Eq.(9), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+        Left-hand side value of Eq.(10), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
         
         Return
         -----------
@@ -186,9 +186,9 @@ class Main:
         left_val = F
         return(left_val)
 
-    def func_right_eq9(self, of, time, lmbd, eps, Ae):
+    def func_right_eq10(self, of, time, lmbd, eps, Ae):
         """
-        Right-hand side value of Eq.(9), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+        Right-hand side value of Eq.(10), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
 
         Return
         -----------
@@ -197,10 +197,10 @@ class Main:
         """
         Ve = func_Ve(of, self.ex_df.Pc[time], eps, self.func_cstr, self.func_gamma)
         mox = self.ex_df.mox[time]
-        left_term = lmbd*Ve*mox*(1+1/of)
+        left_term = Ve*mox*(1+1/of)
         Pe = self.func_Pe(of, self.ex_df.Pc[time])
         right_term = (Pe-self.Pa)*Ae
-        right_val = left_term + right_term
+        right_val = lmbd*(left_term + right_term)
         return(right_val)
     
     def cal_eta(self):

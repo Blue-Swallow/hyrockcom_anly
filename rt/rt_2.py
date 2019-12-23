@@ -11,7 +11,7 @@ import warnings
 import matplotlib.pyplot as plt
 from scipy import integrate
 from scipy import optimize
-from . import rt_1
+from . import rt_5
 from tqdm import tqdm
 import os
 
@@ -22,7 +22,7 @@ class Main:
         self.func_gamma = func_gamma
         self.input_param = input_param
         self.plot = plot
-        self.of_rt1 = rt_1.Main(self.ex_df, self.input_param).of
+        self.of_init = rt_5.Main(self.ex_df, self.func_cstr, self.func_gamma, self.input_param).execute_RT().of
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_eta_iterat = 0
         
@@ -164,14 +164,14 @@ class Main:
         print("eta = {}".format(eta))
         for i in tqdm(self.ex_df.index):
             of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
-            of_init = self.of_rt1.where(self.of_rt1>0, other=1.0e-2)
+            of_init = self.of_init.where(self.of_init>0, other=1.0e-2)
             try:
                 tmp = optimize.newton(self.func_error_eq14, of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
 #            tmp = optimize.newton(self.func_error_eq14, of_init[i], tol=1.0e-5, args=(i, eta))
             except:
                 try:
 #                    print("Using scipy.optimize.brentq method insted of newton")
-#                    tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, self.of_rt1.max(), maxiter=100, xtol=1.0e-5, args=(i, eta))
+#                    tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, self.of_init.max(), maxiter=100, xtol=1.0e-5, args=(i, eta))
                     tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, of_bound_max, maxiter=100, xtol=1.0e-5, args=(i, eta))
                 except ValueError:
                     tmp = of_bound_max
@@ -225,7 +225,7 @@ class Main:
             eta *cstr_th *(1+1/(O/F)) 
         """
         Pc = self.ex_df.Pc[t]
-        cstr = self.func_cstr(self.of_rt1[t], Pc)
+        cstr = self.func_cstr(of, Pc)
         left_val = eta*cstr*(1 + 1/of)
         return(left_val)
 
