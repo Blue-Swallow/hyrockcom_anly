@@ -164,7 +164,9 @@ class Main:
         print("eta = {}".format(eta))
         for i in tqdm(self.ex_df.index):
             of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
-            of_init = self.of_rt1.where(self.of_rt1>0, other=1.0e-2)
+            # of_init = self.of_rt1.where(self.of_rt1>0, other=1.0e-2)
+            of_init = self.of_rt1.where(self.of_rt1>0, other=of_bound_max)
+            self.of_init = of_init
             try:
                 tmp = optimize.newton(self.func_error_eq14, of_init[i], maxiter=100, tol=1.0e-5, args=(i, eta))
 #            tmp = optimize.newton(self.func_error_eq14, of_init[i], tol=1.0e-5, args=(i, eta))
@@ -175,6 +177,7 @@ class Main:
                     tmp = optimize.brentq(self.func_error_eq14, 1.0e-3, of_bound_max, maxiter=100, xtol=1.0e-5, args=(i, eta))
                 except ValueError:
                     tmp = of_bound_max
+                    # tmp = self.of_rt1[i]
             of = np.append(of, tmp)
             j +=1
         self.anl_df["of"] = of
@@ -225,7 +228,8 @@ class Main:
             eta *cstr_th *(1+1/(O/F)) 
         """
         Pc = self.ex_df.Pc[t]
-        cstr = self.func_cstr(self.of_rt1[t], Pc)
+        # cstr = self.func_cstr(self.of_rt1[t], Pc)
+        cstr = self.func_cstr(self.of_init[t], Pc)
         left_val = eta*cstr*(1 + 1/of)
         return(left_val)
 

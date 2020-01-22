@@ -230,7 +230,7 @@ class Cui_input():
                 symbol = ("t", "mox", "F", "Pc")
                 self.ex_param = dict(zip(p_name, symbol))
                 if os.path.exists(file_path):
-                    self.ex_df = pd.read_csv(file_path,header=1, index_col=0)
+                    self.ex_df = pd.read_csv(file_path,header=1, index_col=0, usecols=[0,1,2,3])
                     self.ex_df.mox = self.ex_df.mox * 1.0e-3 #convert [g/s] to [kg/s]
                     self.ex_df.Pc = self.ex_df.Pc * 1.0e+6 + 0.1013e+6 #convert [MPaG] to [Pa]
                     break
