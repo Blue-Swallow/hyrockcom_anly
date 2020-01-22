@@ -15,8 +15,12 @@ from cea_db_maker import cea_pre
 from cea_db_maker import cea_post
 from rt import rt_1
 from rt import rt_1_error
+from rt import rt_2
+from rt import rt_2_error
 from rt import rt_3
 from rt import rt_3_error
+from rt import rt_4
+from rt import rt_4_error
 from rt import rt_5
 from rt import rt_5_error
 import matplotlib.pyplot as plt
@@ -74,15 +78,23 @@ class RT():
                 
 #        if self.input_param["mode"] == 2:
 #            anl_df = rt_2.main(self.ex_df, self.of, self.Pc, self.cstr, self.gamma, self.input_param)
+        if self.input_param["mode"] == 2:
+            anl_df = rt_2.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+            if self.input_param["mode_error"] == "y":
+                # anl_df = self.error_cal_rt5(anl_df)
+                anl_df = rt_2_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
 
         if self.input_param["mode"] == 3:
             anl_df = rt_3.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
             if self.input_param["mode_error"] == "y":
                 # anl_df = self.error_cal_rt3(anl_df)
-                anl_df = rt_3_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)                
+                anl_df = rt_3_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
 
-#        if self.input_param["mode"] == 4:
-#            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param)
+        if self.input_param["mode"] == 4:
+            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+            if self.input_param["mode_error"] == "y":
+                # anl_df = self.error_cal_rt3(anl_df)
+                anl_df = rt_4_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)     
 
         if self.input_param["mode"] == 5:
             anl_df = rt_5.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
@@ -132,9 +144,10 @@ class Cui_input():
         value: int, 1, 3, 4, 5
         the value is reperesentative number,
         1: RT-1, Re-construction technique 1; using average c*
+        2: RT-2, Re-construction technique 5; using constant c* efficiency
         3: RT-3, Re-construction technique 3; using constant nozzle discharge coefficient lambda1 
-        4: RT-4, Re-construction technique 4; using constant nozzle discharge coefficient lambda2 
-        5: RT-5, Re-construction technique 5; using constant c* efficiency
+        4: RT-4, Re-construction technique 4; using constant thrust deduction coefficnet lambda2 
+        5: RT-5, Re-construction technique 5; using constant c* efficiency and using O/F calculated by RT-1 in c* calculation
         
         key: str, "Dt"
         value: float, nozzle throat diameter [m]
@@ -217,7 +230,7 @@ class Cui_input():
                 symbol = ("t", "mox", "F", "Pc")
                 self.ex_param = dict(zip(p_name, symbol))
                 if os.path.exists(file_path):
-                    self.ex_df = pd.read_csv(file_path,header=1, index_col=0)
+                    self.ex_df = pd.read_csv(file_path,header=1, index_col=0, usecols=[0,1,2,3])
                     self.ex_df.mox = self.ex_df.mox * 1.0e-3 #convert [g/s] to [kg/s]
                     self.ex_df.Pc = self.ex_df.Pc * 1.0e+6 + 0.1013e+6 #convert [MPaG] to [Pa]
                     break
@@ -300,15 +313,15 @@ class Cui_input():
         while(True):
             print("\nSelect calculation mode.")
             mode = {1: "RT-1",
-#                    2: "RT-2",
+                    2: "RT-2",
                     3: "RT-3",
-#                    4: "RT-4",
+                   4: "RT-4",
                     5: "RT-5"}
             inp = int(input(" 1: RT-1; assuming c* is constant\n"+\
-#                  "2: RT-2; assuming c* efficiency is constant\n"+\
+                  " 2: RT-2; assuming c* efficiency is constant\n"+\
                   " 3: RT-3; assuming nozzle discharge coefficient is constant; lambda1\n"+\
-#                  "4: RT-4; assuming nozzle discharge coefficient is constant; lambda2\n"+\
-                  " 5: RT-5; assuming c* efficiency is constant. RT-2 improved with initial O/F\n>>"))
+                  " 4: RT-4; assuming thrust deduction coefficnet is constant; lambda2\n"+\
+                  " 5: RT-5; assuming constant c* efficiency and using O/F calculated by RT-1 at c* calculation\n>>"))
             if inp in mode.keys():
                 self.input_param["mode"] = inp
                 break
