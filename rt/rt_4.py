@@ -32,9 +32,13 @@ class Main:
 
     def execute_RT(self, maxiter=30, lmbd_init=0.9):
         lmbd = self.iterat_lmbd(maxiter=maxiter, lmbd_init=lmbd_init, lmbd_min=0.1, lmbd_max=2.0)
+        print("\nNow calculating the ramained parameters and output files. Please wait.")
         self.anl_df["lambda"] = np.array([lmbd for i in self.anl_df.index])
-        self.anl_df["Pe"] = np.array([self.func_Pe(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
-        self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.anl_df["Pe"] = np.array([self.func_Pe(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
+            self.anl_df["Ve"] = np.array([func_Ve(self.anl_df.of[t], self.ex_df.Pc[t], self.input_param["eps"], self.func_cstr, self.func_gamma) for t in self.anl_df.index])
+        self.anl_df["CF"] = self.anl_df.Ve*self.ex_df.mox*(1+1/self.anl_df.of)/(self.ex_df.Pc*np.power(self.input_param["Dt"], 2)*np.pi/4)
         self.anl_df["gamma"] = np.array([self.func_gamma(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.anl_df["cstr_th"] = np.array([self.func_cstr(self.anl_df.of[t], self.ex_df.Pc[t]) for t in self.anl_df.index])
         self.cal_eta()
