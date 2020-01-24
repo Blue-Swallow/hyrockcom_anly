@@ -91,7 +91,7 @@ class RT():
                 anl_df = rt_3_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
 
         if self.input_param["mode"] == 4:
-            anl_df = rt_4.main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
+            anl_df = rt_4.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
             if self.input_param["mode_error"] == "y":
                 # anl_df = self.error_cal_rt3(anl_df)
                 anl_df = rt_4_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)     
