@@ -192,7 +192,7 @@ class Cui_input():
                 self._input_error_mox_()
                 self._input_error_Mf_()
                 self._input_error_Dt_()
-                if self.input_param["mode"] == 3:
+                if self.input_param["mode"] == 3 or self.input_param["mode"] == 4:
                     self._input_error_F_()
             else:
                 pass
