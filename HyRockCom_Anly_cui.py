@@ -24,6 +24,7 @@ from rt import rt_4_error
 from rt import rt_5
 from rt import rt_5_error
 from rt import rt_2_hybrid
+from rt import rt_2_patch
 import matplotlib.pyplot as plt
 
 
@@ -102,8 +103,15 @@ class RT():
             if self.input_param["mode_error"] == "y":
                 # anl_df = self.error_cal_rt5(anl_df)
                 anl_df = rt_5_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
+
         if self.input_param["mode"] == 6:
             anl_df = rt_2_hybrid.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT(filter_level=self.input_param["filterlv"])
+            # if self.input_param["mode_error"] == "y":
+                # anl_df = self.error_cal_rt5(anl_df)
+                # anl_df = rt_5_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
+
+        if self.input_param["mode"] == 7:
+            anl_df = rt_2_patch.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT(filter_level=self.input_param["filterlv"])
             # if self.input_param["mode_error"] == "y":
                 # anl_df = self.error_cal_rt5(anl_df)
                 # anl_df = rt_5_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
@@ -189,7 +197,7 @@ class Cui_input():
             self.cea_path = os.path.join(cadir, "cea_db_maker", "cea_db", foldername, "csv_database")
         else:
             self._select_mode_()
-            if self.input_param["mode"] == 6:
+            if (self.input_param["mode"] == 6) or (self.input_param["mode"] == 7):
                 self._input_filterlv_()
             self._input_nozzle_()
             self._input_eps_()
@@ -325,13 +333,15 @@ class Cui_input():
                     3: "RT-3",
                     4: "RT-4",
                     5: "RT-5",
-                    6: "RT-2 Hybrid"}
+                    6: "RT-2 Hybrid",
+                    7: "RT-2 Patch"}
             inp = int(input(" 1: RT-1; assuming c* is constant\n"+\
                   " 2: RT-2; assuming c* efficiency is constant\n"+\
                   " 3: RT-3; assuming nozzle discharge coefficient is constant; lambda1\n"+\
                   " 4: RT-4; assuming thrust deduction coefficnet is constant; lambda2\n"+\
                   " 5: RT-5; assuming constant c* efficiency and using O/F calculated by RT-1 at c* calculation\n"+\
-                  " 6: RT-2 Hybrid; hybrid method which swicth RT-2 to RT-5 at multi solution region\n>>"))
+                  " 6: RT-2 Hybrid; hybrid method which swicth RT-2 to RT-5 at multi solution region (beta)\n"+\
+                  " 7: RT-2 Patch; enable patch mode at multi solution region (beta)\n>>"))
             if inp in mode.keys():
                 self.input_param["mode"] = inp
                 break
