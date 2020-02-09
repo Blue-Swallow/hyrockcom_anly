@@ -30,37 +30,6 @@ class Main:
         self.counter_eta_iterat = 0
         
     def execute_RT(self, maxiter=30, eta_init=0.8, filter_level=10.0):
-        # dx = 1.0e-3 # dO/F
-        # x_init = 1.0 # initial x when newton iteration is conducted.
-        # self.x_min = 1.0e-2
-        # self.x_max = 1.0e+2
-        # dydx = lambda x: (self.func_left_eq14_ms(x+dx) - self.func_left_eq14_ms(x-dx))/(2*dx) # delivative of the left hand side of Eq.14
-        """ plot part to confirm the shape of dydx """
-        # x_array = np.arange(0.1, 3.0, 1e-2)
-        # plt.plot(x_array, np.array([dydx(x) for x in x_array]))
-        # plt.xlim(0, 3.0)
-        # plt.ylim(-20, 20)
-        # plt.grid()
-        # plt.xlabel(r"$O/F$ [-]")
-        # plt.ylabel(r"$ \frac{d}{dO/F} c^*(1+ \frac{1}{O/F})$")
-        # plt.savefig("dydx.png", dpi=400)
-        # self.xx_0 = optimize.newton(dydx, x_init) # seek the solution of dydx; namely the peak of concave and convex of LHS of Eq.14
-        # try:
-        #     self.xx_1 = optimize.brentq(dydx, self.x_min, self.xx_0 -dx)
-        # except ValueError:
-        #     self.xx_1 = self.xx_0
-        # if round(self.xx_0, 5) == round(self.xx_1, 5):
-        #     self.xx_1 = optimize.brentq(dydx, self.xx_0 +dx, self.x_max)
-        # if self.xx_0 > self.xx_1:
-        #     xx_tmp = self.xx_0
-        #     self.xx_0 = self.xx_1
-        #     self.xx_1 = xx_tmp
-        # self.filter_level = filter_level
-        # self.ms_upper_end = self.func_left_eq14_ms(self.xx_1)
-        # self.ms_bottom_end = self.func_left_eq14_ms(self.xx_0)
-        # self.ms_left_end = self.iterat_newton_of_ms(self.ms_upper_end, self.x_min, self.xx_0)
-        # self.ms_right_end = self.iterat_newton_of_ms(self.ms_bottom_end, self.xx_1, self.x_max)
-
         self.filter_level = filter_level
         try:
             self.iterat_newton_eta(maxiter, eta_init=eta_init)
@@ -204,30 +173,52 @@ class Main:
         x_init = 1.0 # initial x when newton iteration is conducted.
         x_min = 1.0e-2
         x_max = 1.0e+2
-        dydx = lambda x: (self.func_left_eq14_ms(x+dx, eta) - self.func_left_eq14_ms(x-dx, eta))/(2*dx) # delivative of the left hand side of Eq.14
-        xx_0 = optimize.newton(dydx, x_init) # seek the solution of dydx; namely the peak of concave and convex of LHS of Eq.14
-        try:
-            xx_1 = optimize.brentq(dydx, x_min, xx_0 -dx)
-        except ValueError:
-            xx_1 = xx_0
-        if round(xx_0, 5) == round(xx_1, 5):
-            xx_1 = optimize.brentq(dydx, xx_0 +dx, x_max)
-        if xx_0 > xx_1:
-            xx_tmp = xx_0
-            xx_0 = xx_1
-            xx_1 = xx_tmp
-        ms_upper_end = self.func_left_eq14_ms(xx_1, eta) # multisolution region upper end
-        ms_bottom_end = self.func_left_eq14_ms(xx_0, eta) # multisolution region bottom end
-        ms_left_end = self.iterat_newton_of_ms(ms_upper_end, x_min, xx_0, eta)
-        ms_right_end = self.iterat_newton_of_ms(ms_bottom_end, xx_1, x_max, eta)
-        filter_center = (ms_upper_end + ms_bottom_end)/2
-        filter_width = (ms_upper_end - ms_bottom_end)*self.filter_level
-        self.filter_upper_end = filter_center + filter_width/2
-        self.filter_bottom_end = filter_center - filter_width/2
-        self.filter_left_end = self.iterat_newton_of_ms(self.filter_upper_end, x_min, xx_0, eta)
-        self.filter_right_end = self.iterat_newton_of_ms(self.filter_bottom_end, xx_1, x_max, eta)
+        # dydx = lambda x: (self.func_left_eq14_ms(x+dx, eta) - self.func_left_eq14_ms(x-dx, eta))/(2*dx) # delivative of the left hand side of Eq.14
+        # xx_0 = optimize.newton(dydx, x_init) # seek the solution of dydx; namely the peak of concave and convex of LHS of Eq.14
+        # try:
+        #     xx_1 = optimize.brentq(dydx, x_min, xx_0 -dx)
+        # except ValueError:
+        #     xx_1 = xx_0
+        # if round(xx_0, 5) == round(xx_1, 5):
+        #     xx_1 = optimize.brentq(dydx, xx_0 +dx, x_max)
+        # if xx_0 > xx_1:
+        #     xx_tmp = xx_0
+        #     xx_0 = xx_1
+        #     xx_1 = xx_tmp
+        # ms_upper_end = self.func_left_eq14_ms(xx_1, eta) # multisolution region upper end
+        # ms_bottom_end = self.func_left_eq14_ms(xx_0, eta) # multisolution region bottom end
+        # ms_left_end = self.iterat_newton_of_ms(ms_upper_end, x_min, xx_0, eta)
+        # ms_right_end = self.iterat_newton_of_ms(ms_bottom_end, xx_1, x_max, eta)
+        # filter_center = (ms_upper_end + ms_bottom_end)/2
+        # filter_width = (ms_upper_end - ms_bottom_end)*self.filter_level
+        # self.filter_upper_end = filter_center + filter_width/2
+        # self.filter_bottom_end = filter_center - filter_width/2
+        # self.filter_left_end = self.iterat_newton_of_ms(self.filter_upper_end, x_min, xx_0, eta)
+        # self.filter_right_end = self.iterat_newton_of_ms(self.filter_bottom_end, xx_1, x_max, eta)
 
         for i in tqdm(self.ex_df.index):
+            dydx = lambda x: (self.func_left_eq14(x+dx, i, eta) - self.func_left_eq14(x-dx, i, eta))/(2*dx) # delivative of the left hand side of Eq.14
+            xx_0 = optimize.newton(dydx, x_init) # seek the solution of dydx; namely the peak of concave and convex of LHS of Eq.14
+            try:
+                xx_1 = optimize.brentq(dydx, x_min, xx_0 -dx)
+            except ValueError:
+                xx_1 = xx_0
+            if round(xx_0, 5) == round(xx_1, 5):
+                xx_1 = optimize.brentq(dydx, xx_0 +dx, x_max)
+            if xx_0 > xx_1:
+                xx_tmp = xx_0
+                xx_0 = xx_1
+                xx_1 = xx_tmp
+            ms_upper_end = self.func_left_eq14(xx_1, i, eta) # multisolution region upper end
+            ms_bottom_end = self.func_left_eq14(xx_0, i, eta) # multisolution region bottom end
+            ms_left_end = self.iterat_newton_of_ms(ms_upper_end, x_min, xx_0, i, eta)
+            ms_right_end = self.iterat_newton_of_ms(ms_bottom_end, xx_1, x_max, i, eta)
+            filter_center = (ms_upper_end + ms_bottom_end)/2
+            filter_width = (ms_upper_end - ms_bottom_end)*self.filter_level
+            self.filter_upper_end = filter_center + filter_width/2
+            self.filter_bottom_end = filter_center - filter_width/2
+            self.filter_left_end = self.iterat_newton_of_ms(self.filter_upper_end, x_min, xx_0, i,  eta)
+            self.filter_right_end = self.iterat_newton_of_ms(self.filter_bottom_end, xx_1, x_max, i, eta)
             of_bound_max = 1.0e+3 # maximum value of O/F boundary at O/F iteration 
             of_init = self.of_init.where(self.of_init>0, other=of_bound_max)
             self.of_init = of_init
@@ -264,7 +255,8 @@ class Main:
         return(of)
 
     
-    def iterat_newton_of_ms(self, rhs, x_left, x_right, eta):
+    def iterat_newton_of_ms(self, rhs, x_left, x_right, t, eta):
+    # def iterat_newton_of_ms(self, rhs, x_left, x_right, eta):        
         """
         Function to calculate O/F. This function is specified to be applid to multi-solution patch.
         
@@ -283,7 +275,8 @@ class Main:
             O/F, solution of c*(1+1/O/F) - R.H.S. = 0
         """
         warnings.filterwarnings("error")
-        of = optimize.brentq(self.func_error_eq14_ms, x_left, x_right, maxiter=100, xtol=1.0e-5, args=(rhs,eta))
+        of = optimize.brentq(self.func_error_eq14_ms, x_left, x_right, maxiter=100, xtol=1.0e-5, args=(rhs,t,eta))
+        # of = optimize.brentq(self.func_error_eq14_ms, x_left, x_right, maxiter=100, xtol=1.0e-5, args=(rhs,eta))
         warnings.resetwarnings()
         return(of)
     
@@ -305,10 +298,12 @@ class Main:
         error = diff/right_eq14
         return(error)
 
-    def func_error_eq14_ms(self, of, rhs, eta):
+    # def func_error_eq14_ms(self, of, rhs, eta):
+    def func_error_eq14_ms(self, of, rhs, t, eta):
         """ Return the error of Eq.14
         """
-        left_eq14 = self.func_left_eq14_ms(of, eta)
+        # left_eq14 = self.func_left_eq14_ms(of, eta)
+        left_eq14 = self.func_left_eq14(of, t, eta)
         right_eq14 = rhs
         diff = left_eq14 - right_eq14
         error = diff/right_eq14
