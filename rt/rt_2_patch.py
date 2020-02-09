@@ -337,20 +337,20 @@ class Main:
         left_val = inclination *of + section
         return(left_val)
 
-    def func_left_eq14_ms(self, of, eta):
-        """
-        Left-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
-        This function is specified to be applid to multi-solution patch.
+    # def func_left_eq14_ms(self, of, eta):
+    #     """
+    #     Left-hand side value of Eq.(14), Nagata et.al., "Evaluations of Data Reduction Methods for Hybrid Rockets", 65th IAC, 2014.
+    #     This function is specified to be applid to multi-solution patch.
 
-        Return
-        -----------
-        left_val: float
-            cstr_th *(1+1/(O/F)) 
-        """
-        Pc = self.ex_df["Pc"].mean() #[Pa] # temporary Pc which is used to calculate delivative of c*(1+1/O/F). Pc does not affect the shape of cstr
-        cstr = self.func_cstr(of, Pc)
-        left_val = eta*cstr*(1 + 1/of)
-        return(left_val)
+    #     Return
+    #     -----------
+    #     left_val: float
+    #         cstr_th *(1+1/(O/F)) 
+    #     """
+    #     Pc = self.ex_df["Pc"].mean() #[Pa] # temporary Pc which is used to calculate delivative of c*(1+1/O/F). Pc does not affect the shape of cstr
+    #     cstr = self.func_cstr(of, Pc)
+    #     left_val = eta*cstr*(1 + 1/of)
+    #     return(left_val)
 
     def func_right_eq14(self, t):
         """
