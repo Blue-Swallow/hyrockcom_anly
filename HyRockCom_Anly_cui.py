@@ -353,9 +353,9 @@ class Cui_input():
                   " 3: RT-3; assuming nozzle discharge coefficient is constant; lambda1\n"+\
                   " 4: RT-4; assuming thrust deduction coefficnet is constant; lambda2\n"+\
                   " 5: RT-5; assuming constant c* efficiency and using O/F calculated by RT-1 at c* calculation\n"+\
-                  " 6: RT-2 Hybrid; hybrid method which swicth RT-2 to RT-5 at multi solution region (beta)\n"+\
-                  " 7: RT-2 Patch; enable patch mode at multi solution region (beta)\n"+\
-                  " 10: NTRT; Nozzle throat reconstruction technique (beta)\n>>"))
+                  " 6: RT-2 Hybrid; hybrid method which swicth RT-2 to RT-5 at multi solution region (ver. beta)\n"+\
+                  " 7: RT-2 Patch; enable patch mode at multi solution region (ver. beta)\n"+\
+                  " 10: NTRT; Nozzle throat reconstruction technique (developping)\n>>"))
             if inp in mode.keys():
                 self.input_param["mode"] = inp
                 break
