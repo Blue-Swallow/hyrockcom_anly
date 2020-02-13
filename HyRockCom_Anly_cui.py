@@ -214,7 +214,11 @@ class Cui_input():
                 self._input_nozzle_()
                 self._input_eps_()
             self._input_consump_()
-            flag_error = self._select_error_analysis_()
+            if (self.input_param["mode"] == 1) or (self.input_param["mode"] == 2) or (self.input_param["mode"] == 3) or \
+            (self.input_param["mode"] == 4) or (self.input_param["mode"] == 5) :
+                flag_error = self._select_error_analysis_()
+            else:
+                flag_error = False
             if flag_error:
                 self._input_error_Pc_()
                 self._input_error_mox_()
@@ -349,13 +353,13 @@ class Cui_input():
                     7: "RT-2 Patch",
                     10: "NTRT"}
             inp = int(input(" 1: RT-1; assuming c* is constant\n"+\
-                  " 2: RT-2; assuming c* efficiency is constant\n"+\
-                  " 3: RT-3; assuming nozzle discharge coefficient is constant; lambda1\n"+\
-                  " 4: RT-4; assuming thrust deduction coefficnet is constant; lambda2\n"+\
-                  " 5: RT-5; assuming constant c* efficiency and using O/F calculated by RT-1 at c* calculation\n"+\
+                  " 2: RT-2;        assuming c* efficiency is constant\n"+\
+                  " 3: RT-3;        assuming nozzle discharge coefficient is constant; lambda1\n"+\
+                  " 4: RT-4;        assuming thrust deduction coefficnet is constant; lambda2\n"+\
+                  " 5: RT-5;        assuming constant c* efficiency and using O/F calculated by RT-1 at c* calculation\n"+\
                   " 6: RT-2 Hybrid; hybrid method which swicth RT-2 to RT-5 at multi solution region (ver. beta)\n"+\
-                  " 7: RT-2 Patch; enable patch mode at multi solution region (ver. beta)\n"+\
-                  " 10: NTRT; Nozzle throat reconstruction technique (developping)\n>>"))
+                  " 7: RT-2 Patch;  enable patch mode at multi solution region (ver. beta)\n"+\
+                  "10: NTRT;        Nozzle throat reconstruction technique (developping)\n>>"))
             if inp in mode.keys():
                 self.input_param["mode"] = inp
                 break
