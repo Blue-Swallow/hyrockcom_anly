@@ -25,6 +25,7 @@ from rt import rt_5
 from rt import rt_5_error
 from rt import rt_2_hybrid
 from rt import rt_2_patch
+from rt import rt_3_patch
 from rt import ntrt
 import matplotlib.pyplot as plt
 
@@ -117,6 +118,12 @@ class RT():
                 # anl_df = self.error_cal_rt5(anl_df)
                 # anl_df = rt_5_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
 
+        if self.input_param["mode"] == 8:
+            anl_df = rt_3_patch.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT(filter_level=self.input_param["filterlv"])
+            # if self.input_param["mode_error"] == "y":
+                # anl_df = self.error_cal_rt5(anl_df)
+                # anl_df = rt_5_error.main(anl_df, self.ex_df, self.input_param, self.cstr, self.gamma)
+
         if self.input_param["mode"] == 10:
             anl_df = ntrt.Main(self.ex_df, self.cstr, self.gamma, self.input_param).execute_RT()
             # if self.input_param["mode_error"] == "y":
@@ -204,7 +211,7 @@ class Cui_input():
             self.cea_path = os.path.join(cadir, "cea_db_maker", "cea_db", foldername, "csv_database")
         else:
             self._select_mode_()
-            if (self.input_param["mode"] == 6) or (self.input_param["mode"] == 7):
+            if (self.input_param["mode"] == 6) or (self.input_param["mode"] == 7) or (self.input_param["mode"] == 8):
                 self._input_filterlv_()
             if (self.input_param["mode"] == 10):
                 self._input_nozzle_initial_()
@@ -351,6 +358,7 @@ class Cui_input():
                     5: "RT-5",
                     6: "RT-2 Hybrid",
                     7: "RT-2 Patch",
+                    8: "RT-3 Patch",
                     10: "NTRT"}
             inp = int(input(" 1: RT-1; assuming c* is constant\n"+\
                   " 2: RT-2;        assuming c* efficiency is constant\n"+\
@@ -359,6 +367,7 @@ class Cui_input():
                   " 5: RT-5;        assuming constant c* efficiency and using O/F calculated by RT-1 at c* calculation\n"+\
                   " 6: RT-2 Hybrid; hybrid method which swicth RT-2 to RT-5 at multi solution region (ver. beta)\n"+\
                   " 7: RT-2 Patch;  enable patch mode at multi solution region (ver. beta)\n"+\
+                  " 8: RT-3 Patch;  enable patch mode at multi solution region (ver. beta)\n"+\
                   "10: NTRT;        Nozzle throat reconstruction technique (developping)\n>>"))
             if inp in mode.keys():
                 self.input_param["mode"] = inp
