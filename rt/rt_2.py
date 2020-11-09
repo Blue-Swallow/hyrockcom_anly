@@ -11,7 +11,8 @@ import warnings
 import matplotlib.pyplot as plt
 from scipy import integrate
 from scipy import optimize
-from . import rt_5
+# from . import rt_5
+from . import rt_1
 from tqdm import tqdm
 import os
 
@@ -22,7 +23,8 @@ class Main:
         self.func_gamma = func_gamma
         self.input_param = input_param
         self.plot = plot
-        self.of_init = rt_5.Main(self.ex_df, self.func_cstr, self.func_gamma, self.input_param).execute_RT().of
+        # self.of_init = rt_5.Main(self.ex_df, self.func_cstr, self.func_gamma, self.input_param).execute_RT().of
+        self.of_init = rt_1.Main(self.ex_df, self.input_param).of
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_eta_iterat = 0
         
