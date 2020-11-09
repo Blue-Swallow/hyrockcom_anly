@@ -12,7 +12,8 @@ from scipy import integrate
 from scipy import optimize
 from tqdm import tqdm
 import os
-from . import rt_5
+# from . import rt_5
+from . import rt_1
 
 
 class Main:
@@ -23,8 +24,8 @@ class Main:
         self.input_param = input_param
         self.plot = plot
         self.func_Pe = class_Pe(self.func_gamma, self.input_param["eps"]).gen_func()
-#        self.of_init = rt_1.Main(self.ex_df, self.input_param).of
-        self.of_init = rt_5.Main(self.ex_df, self.func_cstr, self.func_gamma, self.input_param, ).execute_RT().of
+        self.of_init = rt_1.Main(self.ex_df, self.input_param).of
+        # self.of_init = rt_5.Main(self.ex_df, self.func_cstr, self.func_gamma, self.input_param, ).execute_RT().of
         self.anl_df = pd.DataFrame([], index=self.ex_df.index)
         self.counter_lmbd_iterat = 0
         self.Pa = 0.1013*1.0e+6 #Atmospheric pressure [Pa]
