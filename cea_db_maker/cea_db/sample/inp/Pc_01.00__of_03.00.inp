@@ -1,8 +1,9 @@
 prob
-	case=Pc_01.00__of_03.00.inp o/f=3.0 rocket equilibrium tcest,k=3800 p,bar=10.0 sup,ae/at=2.0
+	case=Pc_01.00__of_03.00.inp o/f=3.0 rocket equilibrium tcest,k=3800 p,bar=10.0 sup,ae/at=3.0
 react
-	oxid=H2O2(L) wt=80.0 t,k=290.0 
-	oxid=H2O(L) wt=20.0 t,k=290.0 
-	fuel=PE wt=100.0 t,k=300.0 h,kj/mol=-54.3 C 2 H 4 
+	oxid=O2 wt=50.0 t,k=280.0 
+	oxid=N2O wt=50.0 t,k=280.0 
+	fuel=PMMA wt=20.0 t,k=280.0 h,kj/mol=-468.0 C 5 H 8 O 2 
+	fuel=PE wt=80.0 t,k=280.0 h,kj/mol=-54.2 C 2 H 4 
 output	transport
 end

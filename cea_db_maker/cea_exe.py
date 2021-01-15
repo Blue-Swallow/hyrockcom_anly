@@ -7,12 +7,13 @@ import numpy as np
 from scipy import interpolate
 import pandas as pd
 import matplotlib.pyplot as plt
-import os, sys, glob, shutil
+import os, sys, glob, shutil, platform
 import re, copy
 import tqdm
 from subprocess import*
 import warnings
 import time
+from cea_pre import make_inp_name, make_inp
 
 
 class CEA_execute:
@@ -28,6 +29,7 @@ class CEA_execute:
             Folder's path of data-base, by default None
         """
         self.fld_path = fld_path
+        self.platform = platform.system()
         pass
     
     def _getpath_(self):
@@ -107,11 +109,11 @@ class CEA_execute:
                 dir = os.path.dirname(os.path.join(dbfld_path, i + ".csv"))
                 if not os.path.exists(dir):
                     os.mkdir(dir)
-                df = pd.DataFrame(val_dict[i], index=of, columns=Pc)
+                df = pd.DataFrame(val_dict[i], index=of, columns=Pc).sort_index().sort_index(axis=1)
                 df.to_csv(os.path.join(dbfld_path, i) + ".csv")
         else:
             for i in val_dict:
-                df = pd.DataFrame(val_dict[i], index=of, columns=Pc)
+                df = pd.DataFrame(val_dict[i], index=of, columns=Pc).sort_index().sort_index(axis=1)
                 df.to_csv(os.path.join(dbfld_path, i)+"_"+point+".csv")
 
     def single_exe(self, cea_dirpath, inp_fname):
@@ -128,7 +130,15 @@ class CEA_execute:
         """
         #cea_fname : Name and case of CEA input-file & output-file
         os.chdir(cea_dirpath)
-        cea_path = os.path.join(cea_dirpath, "FCEA2.exe")
+        if self.platform == "Windows":
+            cea_path = os.path.join(cea_dirpath, "FCEA2.exe")
+        elif self.platform == "Linux":
+            cea_path = os.path.join(cea_dirpath, "FCEA2_linux")
+        elif self.platform == "Darwin":
+            cea_path = os.path.join(cea_dirpath, "FCEA2_mac")
+        else:
+            print("Sorry, this program does not support \"{}\" system.".format(self.platform))
+            sys.exit()
         command = os.path.join(cea_dirpath,inp_fname) + "\n"
         p = Popen(cea_path, stdin=PIPE, stdout=PIPE)
         p.communicate(input=bytes(command,"utf-8"))
@@ -137,12 +147,7 @@ class CEA_execute:
         os.chdir("..")
         return
 
-    def onetime_exe(self):
-        """
-        Execute CEA in onetime; preparing ".inp", execute CEA and read ".out" file
-        """
-        pass
-       
+      
     def all_exe(self):
         """
         Execute CEA calculation with respect to all conditon: Pc & o/f
@@ -156,19 +161,26 @@ class CEA_execute:
         cadir, inpfld_path, outfld_path, dbfld_path = self._getpath_()
         cea_dirpath = os.path.join(cadir, "cea")
         split =  lambda r: os.path.splitext(r)[0] # get file name without extention
-        inp_list = [os.path.basename(split(r))  for r in glob.glob(inpfld_path + "/*.inp")]
-          
-               
+        inp_list = [os.path.basename(split(r))  for r in glob.glob(inpfld_path + "/*.inp")]        
+
+        num_point = 0               
         for i, fname in enumerate(tqdm.tqdm(inp_list)):
             shutil.copy(os.path.join(inpfld_path,fname+".inp"), os.path.join(cadir,"cea","tmp.inp"))
             self.single_exe(cea_dirpath, "tmp")
             shutil.copy(os.path.join(cea_dirpath, "tmp.out"), os.path.join(outfld_path, fname+".out"))
             cond, therm, trans, rock, mole = Read_output("cea").read_out("tmp")
-            
+
+            if cond["O/F"] == 0.0 or type(cond["O/F"]) is not float:
+                cond["O/F"] = float(re.sub("Pc_.....__of_" ,"", fname))
+            if cond["Pc"] == 0.0 or type(cond["Pc"]) is not float:
+                cond["Pc"] = float(re.sub("Pc_", "", re.sub("__of_....." ,"", fname)))
+            if len(mole) != 0:
+                if len(mole[list(mole.keys())[0]]) > num_point:
+                    num_point =  len(mole[list(mole.keys())[0]])
             therm.update(trans) #combine dict "therm" and dict "trans"
 
+            #initialize each container array
             if i ==0: 
-                #initialize
                 of = []
                 Pc = [] 
                 value_c = copy.deepcopy(therm)
@@ -184,16 +196,13 @@ class CEA_execute:
                 value_mole = copy.deepcopy(mole)
                 keys_mole = list(mole.keys())
                 for j in mole:
-                    # value_mole[j] = np.zeros((0,0), float)
                     for k in range(mole[j].__len__()):
                         value_mole[j][k] = np.zeros((0,0), float)
 
-#            list_combine = list(mole.keys()) + keys_mole
-#            list_only = [x for x in list_combine if list_combine.count(x) == 1]
             list_only = [x for x in keys_mole if x not in list(mole.keys())]
 
-            if cond["O/F"] not in of:
-                #extend row of array when o/f is renewed
+            #extend row of array when o/f is renewed
+            if cond["O/F"] not in of and type(cond["O/F"]) is float:
                 of.append(cond["O/F"])
                 for j in therm:
                     value_c[j] = np.append(value_c[j], np.zeros((1,value_c[j].shape[1]), float), axis=0)
@@ -206,16 +215,14 @@ class CEA_execute:
                         value_mole[j] = [np.array([]) for k in range(mole[j].__len__())]
                         for k in range(mole[j].__len__()):
                             value_mole[j][k] = np.zeros((len(of), len(Pc)), float)
-#                        keys_mole.append(j)
                     else:
                         for k in range(mole[j].__len__()):
                             value_mole[j][k] = np.append(value_mole[j][k], np.zeros((1,value_mole[j][k].shape[1]), float), axis=0)
                 for i in list_only:
                     for k in range(mole[j].__len__()):
                         value_mole[i][k] = np.append(value_mole[i][k], np.zeros((1,value_mole[i][k].shape[1]), float), axis=0)
-
-            if cond["Pc"] not in Pc:
-                #extend column of array when Pc is renewed
+            #extend column of array when Pc is renewed
+            if cond["Pc"] not in Pc and type(cond["Pc"]) is float:
                 Pc.append(cond["Pc"])
                 for j in therm:
                     value_c[j] = np.append(value_c[j], np.zeros((value_c[j].shape[0],1), float), axis=1)
@@ -228,25 +235,32 @@ class CEA_execute:
                         value_mole[j] = [np.array([]) for k in range(mole[j].__len__())]
                         for k in range(mole[j].__len__()):
                             value_mole[j][k] = np.zeros((len(of), len(Pc)), float)
-#                        keys_mole.append(j)
                     else:
                         for k in range(mole[j].__len__()):
                             value_mole[j][k] = np.append(value_mole[j][k], np.zeros((value_mole[j][k].shape[0],1), float), axis=1)
                 for i in list_only:
-                    for k in range(mole[j].__len__()):                    
+                    # for k in range(mole[j].__len__()):
+                    for k in range(num_point):
                         value_mole[i][k] = np.append(value_mole[i][k], np.zeros((value_mole[i][k].shape[0],1), float), axis=1)
-
 
             p = of.index(cond["O/F"])
             q = Pc.index(cond["Pc"])
             for j in therm:
                 #Substitute each themodynamic value
-                value_c[j][p,q] = therm[j][0]
-                value_t[j][p,q] = therm[j][1]
-                value_e[j][p,q] = therm[j][2]
+                if len(therm[j]) == 0:
+                    value_c[j][p,q] = np.nan
+                    value_t[j][p,q] = np.nan
+                    value_e[j][p,q] = np.nan
+                else:
+                    value_c[j][p,q] = therm[j][0]
+                    value_t[j][p,q] = therm[j][1]
+                    value_e[j][p,q] = therm[j][2]
             for j in rock:
                 #Substitute each rocket-parameter value
-                value_rock[j][p,q] = rock[j][1]
+                if len(rock[j]) == 0:
+                    value_rock[j][p,q] = np.nan
+                else:    
+                    value_rock[j][p,q] = rock[j][1]
             for j in mole:
                 #Substitute each mole fraction
                 if j not in keys_mole:
@@ -282,6 +296,95 @@ class CEA_execute:
         return(of, Pc, value_c, value_t, value_e, value_rock, value_mole)
 
 
+
+class CEA_onetime_execute(CEA_execute):
+    """
+    Class for executing CEA in onetime
+    base: CEA_execute
+    """
+    def __init__(self, fld_path=None):
+        super().__init__(fld_path=fld_path)
+        cadir = os.path.dirname(os.path.abspath(__file__))
+        self.cea_dirpath = os.path.join(cadir, "cea")
+
+    def onetime_exe_name(self, option, list_species, Pc, eps):
+        """
+        Execute CEA in onetime; preparing ".inp", execute CEA and read ".out" file,
+        when you assign several species and its fraction of amount.
+
+        Parameter
+        ---------
+        option: string
+            Calculation option, wtheher using equilibrium composition or frozen composition.
+            "equilibrium", "frozen nfz=1" or "frozen nfz=2"
+        list_species: list of dictionary,
+            The list has an information about chemical species as dict type; dict{"name":name, "wt":weight fraction, "temp":initial temperature, "h":enthalpy, "elem"element}
+        Pc: float,
+            Camberpressure, [Pa]
+        eps: float,
+            Area ratio of nozzle throat & exit, Ae/At
+        
+        Return
+        ----------
+        output: dictionary of dictionary
+            {"cond": dictionary of calculating condition,
+            "therm": dictionary of thermal property,
+            "trans": dictionary of transport property,
+            "rock": dictionary of rocket property,
+            "mole": dictionary of mole fraction}
+        """
+        Pc = Pc*1e-6    # convert unit Pa to MPa
+        make_inp_name(self.cea_dirpath, option, list_species, Pc, eps, fname="tmp")
+        output = self._exe_post_process()
+        return output
+
+    def onetime_exe_of(self, option, of, Pc, list_oxid, list_fuel, eps):
+        """
+        Execute CEA in onetime; preparing ".inp", execute CEA and read ".out" file,
+        when you assign only oxid and fuel species, and O/F.
+
+        Parameter
+        ---------
+        option: string
+            Calculation option, wtheher using equilibrium composition or frozen composition.
+            "equilibrium", "frozen nfz=1" or "frozen nfz=2"
+        of: float,
+            O/F
+        Pc: float,
+            Camberpressure, [Pa]
+        list_oxid: list,
+            The list has an information about oxidizer as dict type; dict{"name":name, "wt":weight fraction, "temp":initial temperature, "h":enthalpy, "elem"element}
+        list_fuel: list
+            The list has an information about fuel as dict type; dict{"name":name, "wt":weight fraction, "temp":initial temperature, "h":enthalpy, "elem"element}
+        eps: float,
+            Area ratio of nozzle throat & exit, Ae/At
+        
+        Return
+        ----------
+        output: dictionary of dictionary
+            {"cond": dictionary of calculating condition,
+            "therm": dictionary of thermal property,
+            "trans": dictionary of transport property,
+            "rock": dictionary of rocket property,
+            "mole": dictionary of mole fraction}
+        """
+        Pc = Pc*1e-6    # convert unit Pa to MPa
+        make_inp(self.cea_dirpath, option, of, Pc, list_oxid, list_fuel, eps, fname="tmp")
+        output = self._exe_post_process()
+        return output
+
+    def _exe_post_process(self):
+        self.single_exe(self.cea_dirpath, "tmp")
+        cond, therm, trans, rock, mole = Read_output("cea").read_out("tmp")
+        output = {"cond": cond,
+                  "therm": therm,
+                  "trans": trans,
+                  "rock": rock,
+                  "mole": mole
+                  }
+        return output
+
+
 class Read_output:
     """ Read contens in one ".out" file
     
@@ -305,10 +408,22 @@ class Read_output:
         """
         Extract calculated value from splitted data-list containing raw-data string
         """
-        extract = [str_list[i] for i in range(len(str_list)) if (str_list[i].replace(".","")).replace("-","").isdigit()]
+        # extract = [str_list[i] for i in range(len(str_list)) if (str_list[i].replace(".","")).replace("-","").isdigit()]
+        extract = []
+        for i in range(len(str_list)):     # extract only values and eliminate chracters.
+            tmp = (str_list[i].replace(".", "")).replace("-", "")
+            if tmp.isdigit(): # choose only numerical value
+                extract.append(str_list[i])
+            elif re.search("\*\*\*", tmp):    # change "*******" to np.nan
+                extract.append(np.nan)
+            else:
+                pass
         val_list = []
         for i in extract:
-            if re.search("-.$", i):
+            if i is np.nan:
+                #contain Nan value to val_list
+                val_list.append(i)
+            elif re.search("-.$", i):
                 #calculate exponents, which are sometimes included in "RHO"-row include 
                 flag = re.search("-.$", i)
                 exp = flag.group()
@@ -354,7 +469,10 @@ class Read_output:
             key: string, a name of rocket parameter: e.g. "CSTR", "Isp", "CF", etc...
             elem: list [t, e]  *in this case "t" and "e" values are equivalent
                 t: float, a value at the throat
-                e: float, a value at the end of nozzle               
+                e: float, a value at the end of nozzle
+        mole_fraction: dict {key: elem}
+            key: string, a name of chemical species
+            elem: list of float, [c, t, e] *in this case "c" is at chamber, "t" is at throat and "e" is at nozzle exit            
         """
         out_fpath = os.path.join(self.fld_path, cea_fname + ".out")
         file = open(out_fpath,"r")
@@ -400,6 +518,8 @@ class Read_output:
                     tmp = self._vextract_(dat)
                     cond_param["O/F"] = tmp[0]
                     cond_param["PHI"] = tmp[3]
+                elif(dat_head == "Pc"):
+                    cond_param["Pc"] = round(float(dat[1])*1.0e-1, 4)
                 elif(dat_head in therm_param): #line containing therm_param
                     if (dat_head!="Cp"):
                         therm_param[dat_head] = self._vextract_(dat)
@@ -407,7 +527,7 @@ class Read_output:
                         therm_param[dat_head] = self._vextract_(dat)
                         flag_cp = True
                     if (dat_head == "P"):
-                        cond_param["Pc"] = round(therm_param[dat_head][0] *1.0e-1, 4)
+                        # cond_param["Pc"] = round(therm_param[dat_head][0] *1.0e-1, 4)
                         therm_param[dat_head] = [round(i*1.0e-1, 4) for i in therm_param[dat_head]]
                 elif(dat_head in rock_param): #line containing rock_param
                     rock_param[dat_head] = self._vextract_(dat)
@@ -431,38 +551,49 @@ class Read_output:
                             tmp_fraction = []
                             key = dat[i].strip("*")
                         mole_fraction[key] = tmp_fraction
-        file.close()
-
-    #    therm_ntpl = collections.namedtuple("thermval",["c","t","e"])    
-    #    rock_ntpl = collections.namedtuple("rockval",["t","e"])
-    #    P = therm_ntpl(c=therm_param["P"][0], t=therm_param["P"][1], e=therm_param["P"][2])
-    #    T = therm_ntpl(c=therm_param["T"][0], t=therm_param["T"][1], e=therm_param["T"][2])
-    #    rho = therm_ntpl(c=therm_param["RHO"][0], t=therm_param["RHO"][1], e=therm_param["RHO"][2])
-    #    H = therm_ntpl(c=therm_param["H"][0], t=therm_param["H"][1], e=therm_param["H"][2])
-    #    U = therm_ntpl(c=therm_param["U"][0], t=therm_param["U"][1], e=therm_param["U"][2])
-    #    G = therm_ntpl(c=therm_param["G"][0], t=therm_param["G"][1], e=therm_param["G"][2])
-    #    S = therm_ntpl(c=therm_param["S"][0], t=therm_param["S"][1], e=therm_param["S"][2])
-    #    M = therm_ntpl(c=therm_param["M"][0], t=therm_param["M"][1], e=therm_param["M"][2])
-    #    Cp = therm_ntpl(c=therm_param["Cp"][0], t=therm_param["Cp"][1], e=therm_param["Cp"][2])
-    #    gamma = therm_ntpl(c=therm_param["GAMMAs"][0], t=therm_param["GAMMAs"][1], e=therm_param["GAMMAs"][2])
-    #    SON = therm_ntpl(c=therm_param["SON"][0], t=therm_param["SON"][1], e=therm_param["SON"][2])
-    #    MACH = therm_ntpl(c=therm_param["MACH"][0], t=therm_param["MACH"][1], e=therm_param["MACH"][2])
-    #    Eps = rock_ntpl(t=rock_param["Ae/At"][0], e=rock_param["Ae/At"][1])
-    #    cstr = rock_ntpl(t=rock_param["CSTAR"][0], e=rock_param["CSTAR"][1])
-    #    CF = rock_ntpl(t=rock_param["CF"][0], e=rock_param["CF"][1])
-    #    Ispvac = rock_ntpl(t=rock_param["Ivac"][0], e=rock_param["Ivac"][1])
-    #    Isp = rock_ntpl(t=rock_param["Isp"][0], e=rock_param["Isp"][1])    
-    
+        file.close()  
         return(cond_param, therm_param, trans_param, rock_param, mole_fraction)
 
 
 if __name__ == "__main__":
+# Following Part is Normal Code for Using This Program
     inst = CEA_execute()
     of, Pc, value_c, value_t, value_e, value_rock, value_mole = inst.all_exe()
-#    fld_path = 'D:\\T.J\\Github\\HybridRocketCombustionSim\\Develop\\RockCombustSim\\cea_db\\LOX_PE\\out'
-#    cea_fname = 'Pc_00.20__of_00.10'
+
+# Following Part is for debugging the method of single CEA execute
+    # inst2 = CEA_onetime_execute()
+    # OPTIOIN = "frozen nfz=2"
+    # LIST_SPECIES = [
+    #                     {"name": "O2",
+    #                     "wt": 50,
+    #                     "temp": 290,
+    #                     "h": "",
+    #                     "elem": ""
+    #                     },
+    #                     {"name": "N2",
+    #                     "wt": 25,
+    #                     "temp": 290,
+    #                     "h": "",
+    #                     "elem": ""
+    #                     },
+    #                     {"name": "PE",
+    #                     "wt": 25,
+    #                     "temp": 290,
+    #                     "h": -54.2,
+    #                     "elem": "C 2 H 4"
+    #                     }
+    #                 ]
+    # PC = 1.0e+6 # [Pa]
+    # EPS = 1.0
+    # output = inst2.onetime_exe_name(OPTIOIN, LIST_SPECIES, PC, EPS)
+    # print(output)
+
+# Following Part is for debugging the method of reading .out file.
+#    fld_path = "cea"
+#    fname = 'debug'
 #    Read = Read_output(fld_path)
-#    result = Read.read_out(cea_fname)
+#    result = Read.read_out(fname)
 #    cond, therm, trans, rock, mole = result
+#    print(cond, therm, trans, rock, mole)
 
 
